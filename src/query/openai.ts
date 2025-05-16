@@ -11,8 +11,8 @@ import {
   ResponseFormatJSONSchema,
   ResponseFormatText,
 } from "openai/resources/shared";
-import { Value } from "src/query/proto/google/protobuf/struct";
-import { StringValue } from "src/query/proto/google/protobuf/wrappers";
+import { Value } from "./proto/google/protobuf/struct";
+import { StringValue } from "./proto/google/protobuf/wrappers";
 import {
   ContentPart,
   JsonSchema,
@@ -22,7 +22,7 @@ import {
   Stop,
   Tool,
   ToolCall,
-} from "src/query/proto/objective_ai_proto/objective_ai";
+} from "./proto/objective_ai_proto/objective_ai";
 
 export function convertRequest({
   messages,

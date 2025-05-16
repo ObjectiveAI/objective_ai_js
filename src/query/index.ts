@@ -3,7 +3,7 @@ export {
   QUERY_BASE_URL,
   QueryCallOptions,
   QueryClientOptions,
-} from "src/query/client";
+} from "./client";
 export {
   queryToolContent,
   QueryToolContent,
@@ -11,4 +11,4 @@ export {
   JsonValue,
   JsonObject,
   JsonArray,
-} from "src/query/tool";
+} from "./tool";

@@ -32,14 +32,6 @@ export {
   Usage,
   QueryChoiceVoteKind,
   Role,
-} from "src/query/proto/objective_ai_proto/objective_ai";
-export {
-  Value,
-  ListValue,
-  NullValue,
-  Struct,
-} from "src/query/proto/google/protobuf/struct";
-export {
-  StringValue,
-  UInt64Value,
-} from "src/query/proto/google/protobuf/wrappers";
+} from "./objective_ai_proto/objective_ai";
+export { Value, ListValue, NullValue, Struct } from "./google/protobuf/struct";
+export { StringValue, UInt64Value } from "./google/protobuf/wrappers";
