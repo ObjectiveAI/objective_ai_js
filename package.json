@@ -1,7 +1,7 @@
 {
-  "name": "my-api-client",
-  "version": "1.0.0",
-  "description": "A TypeScript client library for interacting with my API.",
+  "name": "objective-ai",
+  "version": "0.1.0",
+  "description": "Client library for the Objective AI API",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -10,14 +10,22 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/my-api-client.git"
+    "url": "https://github.com/ObjectiveAI/objective_ai_js.git"
   },
   "keywords": [
     "api",
     "client",
-    "typescript"
+    "llm",
+    "ai",
+    "mcp",
+    "objective",
+    "factual"
   ],
-  "author": "Your Name",
+  "author": {
+    "name": "Objective AI",
+    "email": "support@objective-ai.io",
+    "url": "https://objective-ai.io"
+  },
   "license": "MIT",
   "dependencies": {
     "@protobuf-ts/grpc-transport": "^2.10.0",
