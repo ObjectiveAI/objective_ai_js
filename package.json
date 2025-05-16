@@ -27,6 +27,20 @@
     "url": "https://objective-ai.io"
   },
   "license": "MIT",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    "./query": {
+      "import": "./dist/query/index.js",
+      "types": "./dist/query/index.d.ts"
+    },
+    "./query/proto": {
+      "import": "./dist/query/proto/index.js",
+      "types": "./dist/query/proto/index.d.ts"
+    }
+  },
   "dependencies": {
     "@protobuf-ts/grpc-transport": "^2.10.0",
     "@protobuf-ts/grpcweb-transport": "^2.10.0"

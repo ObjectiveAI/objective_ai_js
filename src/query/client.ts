@@ -1,9 +1,9 @@
-import { ObjectiveAIClient } from "src/proto/objective_ai_proto/objective_ai.client";
+import { ObjectiveAIClient } from "src/query/proto/objective_ai_proto/objective_ai.client";
 import {
   QueryRequest,
   QueryResponse,
   QueryStreamingResponse,
-} from "src/proto/objective_ai_proto/objective_ai";
+} from "src/query/proto/objective_ai_proto/objective_ai";
 import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
 import { GrpcTransport } from "@protobuf-ts/grpc-transport";
 import { RpcMetadata, RpcOptions } from "@protobuf-ts/runtime-rpc";
@@ -12,7 +12,7 @@ import {
   ChatCompletionCreateParamsNonStreaming,
   ChatCompletionCreateParamsStreaming,
 } from "openai/resources/chat";
-import { convertRequest } from "src/openai";
+import { convertRequest } from "src/query/openai";
 
 export interface QueryCallOptions {
   /**

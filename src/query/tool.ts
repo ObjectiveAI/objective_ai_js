@@ -1,5 +1,5 @@
-import { QueryResponse } from "src/proto/objective_ai_proto/objective_ai";
-import { Value } from "../proto/google/protobuf/struct";
+import { QueryResponse } from "src/query/proto/objective_ai_proto/objective_ai";
+import { Value } from "src/query/proto/google/protobuf/struct";
 
 export type JsonValue =
   | number
