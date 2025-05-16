@@ -5,9 +5,7 @@ import {
   QueryStreamingResponse,
 } from "./proto/objective_ai_proto/objective_ai";
 import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
-import { GrpcTransport } from "@protobuf-ts/grpc-transport";
 import { RpcMetadata, RpcOptions } from "@protobuf-ts/runtime-rpc";
-import { ChannelCredentials } from "@grpc/grpc-js";
 import {
   ChatCompletionCreateParamsNonStreaming,
   ChatCompletionCreateParamsStreaming,
@@ -56,7 +54,7 @@ export const QUERY_BASE_URL = "https://api.query.objective-ai.io";
 
 export class QueryClient {
   private call_options: QueryCallOptions;
-  private client: ObjectiveAIClient;
+  private client: Promise<ObjectiveAIClient>;
 
   constructor({
     transport = "grpc-web",
@@ -70,21 +68,24 @@ export class QueryClient {
     if (!useSsl && !baseUrl.startsWith("http://")) {
       throw new Error("baseUrl must be prefixed with http:// or https://");
     }
-    const rpcTransport = (() => {
+    this.client = (async () => {
       if (transport === "grpc-web") {
-        return new GrpcWebFetchTransport({ baseUrl });
-      } else if (transport === "grpc") {
-        return new GrpcTransport({
-          host: baseUrl.replace(/^https?:\/\//, ""),
-          channelCredentials: useSsl
-            ? ChannelCredentials.createSsl()
-            : ChannelCredentials.createInsecure(),
-        });
+        return new ObjectiveAIClient(new GrpcWebFetchTransport({ baseUrl }));
+        // } else if (transport === "grpc") {
+        //   const { ChannelCredentials } = await import("@grpc/grpc-js");
+        //   const { GrpcTransport } = await import("@protobuf-ts/grpc-transport");
+        //   return new ObjectiveAIClient(
+        //     new GrpcTransport({
+        //       host: baseUrl.replace(/^https?:\/\//, ""),
+        //       channelCredentials: useSsl
+        //         ? ChannelCredentials!.createSsl()
+        //         : ChannelCredentials!.createInsecure(),
+        //     })
+        //   );
       } else {
         throw new Error("transport must be either 'grpc-web' or 'grpc'");
       }
     })();
-    this.client = new ObjectiveAIClient(rpcTransport);
     this.call_options = {
       authorization,
       userAgent,
@@ -93,7 +94,7 @@ export class QueryClient {
     };
   }
 
-  query(
+  async query(
     request: ChatCompletionCreateParamsNonStreaming | QueryRequest,
     callOptions: QueryCallOptions | undefined = {}
   ): Promise<QueryResponse> {
@@ -101,13 +102,12 @@ export class QueryClient {
       request = convertRequest(request);
     }
     callOptions = { ...this.call_options, ...callOptions };
-    return this.client.query(
-      request,
-      rpcOptions(this.call_options, callOptions)
-    ).response;
+    const client = await this.client;
+    return client.query(request, rpcOptions(this.call_options, callOptions))
+      .response;
   }
 
-  queryStreamingChunked(
+  async *queryStreamingChunked(
     request: ChatCompletionCreateParamsStreaming | QueryRequest,
     callOptions: QueryCallOptions | undefined = {}
   ): AsyncIterable<QueryStreamingResponse> {
@@ -115,10 +115,13 @@ export class QueryClient {
       request = convertRequest(request);
     }
     callOptions = { ...this.call_options, ...callOptions };
-    return this.client.queryStreaming(
+    const client = await this.client;
+    for await (const chunk of client.queryStreaming(
       request,
       rpcOptions(this.call_options, callOptions)
-    ).responses;
+    ).responses) {
+      yield chunk;
+    }
   }
 
   async *queryStreamingCollected(
@@ -130,7 +133,7 @@ export class QueryClient {
       metaModel: "",
       choices: [],
     };
-    for await (const chunk of this.queryStreamingChunked(
+    for await (const chunk of await this.queryStreamingChunked(
       request,
       callOptions
     )) {
