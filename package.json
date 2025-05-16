@@ -1,0 +1,32 @@
+{
+  "name": "my-api-client",
+  "version": "1.0.0",
+  "description": "A TypeScript client library for interacting with my API.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/my-api-client.git"
+  },
+  "keywords": [
+    "api",
+    "client",
+    "typescript"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@protobuf-ts/grpc-transport": "^2.10.0",
+    "@protobuf-ts/grpcweb-transport": "^2.10.0"
+  },
+  "devDependencies": {
+    "@grpc/grpc-js": "^1.13.3",
+    "@protobuf-ts/runtime-rpc": "^2.10.0",
+    "openai": "^4.98.0",
+    "typescript": "^5.8.3"
+  }
+}
