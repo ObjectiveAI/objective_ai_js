@@ -45,6 +45,7 @@ export function queryToolContent({
     ) {
       winning_choice = choice;
     }
+    choices.push(choice);
   }
   return {
     choices,
