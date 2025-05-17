@@ -1,6 +1,6 @@
 {
   "name": "objective-ai",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Client library for the Objective AI API",
   "main": "dist/index.js",
   "scripts": {
