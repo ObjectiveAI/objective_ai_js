@@ -1,7 +1,7 @@
 {
   "name": "objective-ai",
-  "version": "0.1.4",
-  "description": "Client library for the Objective AI API",
+  "version": "0.2.0",
+  "description": "Client library for the Objective AI API, intended for use in conjunction with the OpenAI SDK.",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -32,22 +32,12 @@
     "dist"
   ],
   "exports": {
-    "./query": {
-      "import": "./dist/query/index.js",
-      "types": "./dist/query/index.d.ts"
-    },
-    "./query/proto": {
-      "import": "./dist/query/proto/index.js",
-      "types": "./dist/query/proto/index.d.ts"
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     }
   },
-  "dependencies": {
-    "@protobuf-ts/grpc-transport": "^2.10.0",
-    "@protobuf-ts/grpcweb-transport": "^2.10.0"
-  },
   "devDependencies": {
-    "@grpc/grpc-js": "^1.13.3",
-    "@protobuf-ts/runtime-rpc": "^2.10.0",
     "openai": "^4.98.0",
     "typescript": "^5.8.3"
   }
