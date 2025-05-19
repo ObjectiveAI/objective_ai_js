@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { APIPromise, RequestOptions } from "openai/core";
 import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions";
 import { Stream } from "openai/streaming";
-import { QueryAssistantMessageContent } from "src";
+import { QueryAssistantMessageContent } from "./index";
 
 /**
  * Represents a streamed chunk of a chat completion response returned by the model,
@@ -27,7 +27,11 @@ export namespace QueryChatCompletionChunk {
     self: QueryChatCompletionChunk,
     { choices, usage }: QueryChatCompletionChunk
   ): QueryChatCompletionChunk {
-    self.choices.push(...choices);
+    for (const choice of choices) {
+      if (!self.choices.some((c) => c.index === choice.index)) {
+        self.choices.push(choice);
+      }
+    }
     if (self.usage === undefined || self.usage === null) {
       self.usage = usage;
     }
@@ -128,7 +132,7 @@ export namespace QueryChatCompletionChunk {
             // query_content will be not present
             return { ...delta } as Delta;
           }
-        } else if (delta.content === null) {
+        } else if (delta.content === null || delta.content === "") {
           // content is null
           // query_content will be null
           return {
@@ -234,7 +238,7 @@ export namespace QueryChatCompletion {
       export function fromOpenAIMessage(
         message: OpenAI.ChatCompletionMessage
       ): Message {
-        if (message.content === null) {
+        if (message.content === null || message.content === "") {
           // content is null
           // query_content will be null
           return { ...message, content: null, query_content: null };
