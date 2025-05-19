@@ -1,13 +1,10 @@
-import {
-  QueryChatCompletion,
-  QueryChatCompletionChunk,
-  QueryStream,
-} from "./openai";
+import { QueryChatCompletion, QueryChatCompletionChunk } from "./openai";
 
 export {
   QueryChatCompletion,
   QueryChatCompletionChunk,
   QueryStream,
+  Query,
 } from "./openai";
 
 /**
