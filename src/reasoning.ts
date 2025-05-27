@@ -384,13 +384,23 @@ export namespace ReasoningContents {
  * based on the provided input.
  * [Learn more](https://platform.openai.com/docs/guides/streaming-responses).
  */
-export interface ReasoningChatCompletionChunk
+export interface ReasoningChatCompletionChunkOk
   extends OpenAI.ChatCompletionChunk {
   /**
    * A list of Reasoning chat completion choices.
    */
   choices: ReasoningChatCompletionChunk.Choice[];
 }
+
+export interface ReasoningChatCompletionChunkErr {
+  code: number;
+  message: string;
+  metadata?: JsonValue;
+}
+
+export type ReasoningChatCompletionChunk =
+  | ReasoningChatCompletionChunkOk
+  | ReasoningChatCompletionChunkErr;
 
 export namespace ReasoningChatCompletionChunk {
   /**
@@ -400,9 +410,9 @@ export namespace ReasoningChatCompletionChunk {
    * @returns A new merged ReasoningChatCompletionChunk object.
    */
   export function merged(
-    self: ReasoningChatCompletionChunk,
-    { choices, usage }: ReasoningChatCompletionChunk
-  ): ReasoningChatCompletionChunk {
+    self: ReasoningChatCompletionChunkOk,
+    { choices, usage }: ReasoningChatCompletionChunkOk
+  ): ReasoningChatCompletionChunkOk {
     const merged = { ...self };
     if (merged.usage === undefined || merged.usage === null) {
       merged.usage = usage;
@@ -432,10 +442,14 @@ export namespace ReasoningChatCompletionChunk {
   export function fromOpenAIChatCompletionChunk(
     chunk: OpenAI.ChatCompletionChunk
   ): ReasoningChatCompletionChunk {
-    return {
-      ...chunk,
-      choices: chunk.choices.map(Choice.fromOpenAIChoice),
-    };
+    if ("code" in chunk) {
+      return chunk as unknown as ReasoningChatCompletionChunkErr;
+    } else {
+      return {
+        ...chunk,
+        choices: chunk.choices.map(Choice.fromOpenAIChoice),
+      };
+    }
   }
 
   export interface Choice extends OpenAI.ChatCompletionChunk.Choice {
@@ -809,8 +823,10 @@ export namespace ReasoningStream {
     return new Stream(async function* () {
       let merged: ReasoningChatCompletionChunk | null = null;
       for await (const chunk of stream) {
-        if (merged === null) {
+        if (merged === null || "code" in chunk) {
           merged = chunk;
+        } else if ("code" in merged) {
+          merged = merged;
         } else {
           merged = ReasoningChatCompletionChunk.merged(merged, chunk);
         }
