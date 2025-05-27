@@ -20,6 +20,133 @@ export namespace ToolCallMessageContent {
   }
 }
 
+export interface ToolCall extends OpenAI.ChatCompletionMessageToolCall {
+  /**
+   * The function that the model called.
+   */
+  function: ToolCall.Function;
+}
+
+export namespace ToolCall {
+  /**
+   * Converts an OpenAI chat completion message tool call to a native ToolCall object.
+   * @param toolCall - The OpenAI chat completion message tool call to convert.
+   * @returns The converted ToolCall object.
+   */
+  export function fromOpenAIToolCall(
+    toolCall: OpenAI.ChatCompletionMessageToolCall
+  ): ToolCall {
+    return {
+      ...toolCall,
+      function: Function.fromOpenAIFunction(toolCall.function),
+    };
+  }
+
+  export interface ThinkFunction
+    extends OpenAI.ChatCompletionMessageToolCall.Function {
+    /**
+     * The name of the function to call.
+     */
+    name: "think";
+
+    /**
+     * The native JSON arguments of the function call.
+     */
+    parsed_arguments: string;
+  }
+
+  export interface ObjectiveAIQueryFunction
+    extends OpenAI.ChatCompletionMessageToolCall.Function {
+    /**
+     * The name of the function to call.
+     */
+    name: "objective_ai_query";
+
+    /**
+     * The native JSON arguments of the function call.
+     */
+    parsed_arguments: {
+      query: string;
+      schema: { [key: string]: JsonValue };
+      model: string;
+    };
+  }
+
+  export interface ExaSearchFunction
+    extends OpenAI.ChatCompletionMessageToolCall.Function {
+    /**
+     * The name of the function to call.
+     */
+    name: "exa_search";
+
+    /**
+     * The native JSON arguments of the function call.
+     */
+    parsed_arguments: {
+      query: string;
+      category?: string;
+      start_published_date?: string;
+      end_published_date?: string;
+      include_domains?: string[];
+      exclude_domains?: string[];
+    };
+  }
+
+  export interface ExaContentsFunction
+    extends OpenAI.ChatCompletionMessageToolCall.Function {
+    /**
+     * The name of the function to call.
+     */
+    name: "exa_contents";
+
+    /**
+     * The native JSON arguments of the function call.
+     */
+    parsed_arguments: string[];
+  }
+
+  export type Function =
+    | ThinkFunction
+    | ObjectiveAIQueryFunction
+    | ExaSearchFunction
+    | ExaContentsFunction;
+
+  export namespace Function {
+    /**
+     * Converts an OpenAI chat completion message tool call function to a native ToolCall.Function object.
+     * @param function_ - The OpenAI chat completion message tool call function to convert.
+     * @returns The converted ToolCall.Function object.
+     */
+    export function fromOpenAIFunction(
+      function_: OpenAI.ChatCompletionMessageToolCall.Function
+    ): ToolCall.Function {
+      if (function_.name === "think") {
+        return {
+          ...function_,
+          parsed_arguments: function_.arguments as string,
+        } as ThinkFunction;
+      } else if (function_.name === "objective_ai_query") {
+        return {
+          ...function_,
+          parsed_arguments: JSON.parse(function_.arguments),
+        } as ObjectiveAIQueryFunction;
+      } else if (function_.name === "exa_search") {
+        return {
+          ...function_,
+          parsed_arguments: JSON.parse(function_.arguments),
+        } as ExaSearchFunction;
+      } else if (function_.name === "exa_contents") {
+        return {
+          ...function_,
+          parsed_arguments: JSON.parse(function_.arguments),
+        } as ExaContentsFunction;
+      } else {
+        throw new Error(`Unknown tool call function name: ${function_.name}`);
+      }
+    }
+  }
+}
+
 export interface ToolResponseChunkBaseContent {
   type: "tool_response_chunk";
   tool_call_id: string;
@@ -78,6 +205,50 @@ export namespace ToolResponseChunkContent {
 export interface ToolResponseMessageContent {
   type: "tool_response_message";
   message: OpenAI.ChatCompletionToolMessageParam;
+}
+
+export interface ErrorToolMessageContent {
+  code: number;
+  message: string;
+  metadata?: JsonValue;
+}
+
+export namespace ErrorToolMessageContent {
+  export function tryFromJson(
+    json: JsonValue
+  ): ErrorToolMessageContent | undefined {
+    if (
+      typeof json === "object" &&
+      json !== null &&
+      "code" in json &&
+      "message" in json &&
+      typeof json.code === "number" &&
+      typeof json.message === "string"
+    ) {
+      return {
+        code: json.code,
+        message: json.message,
+        metadata: json.metadata,
+      };
+    }
+    return undefined;
+  }
+
+  export function tryFromContent(
+    content: string | Array<OpenAI.ChatCompletionContentPartText>
+  ): ErrorToolMessageContent | undefined {
+    try {
+      return ErrorToolMessageContent.tryFromJson(
+        JSON.parse(
+          typeof content === "string"
+            ? content
+            : content.map((c) => c.text).join("")
+        )
+      );
+    } catch (e) {
+      return undefined;
+    }
+  }
 }
 
 export namespace ToolResponseMessageContent {
