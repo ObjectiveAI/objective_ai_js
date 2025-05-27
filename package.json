@@ -27,14 +27,13 @@
     "url": "https://objective-ai.io"
   },
   "license": "MIT",
-  "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
   "exports": {
     "./query": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./dist/query.js",
+      "types": "./dist/query.d.ts"
     },
     "./reasoning": {
       "import": "./dist/reasoning.js",
