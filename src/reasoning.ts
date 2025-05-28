@@ -793,7 +793,7 @@ export namespace ReasoningChatCompletion {
  * Stream of ReasoningChatCompletionChunk objects.
  * Can be easily constructed from an OpenAI chat completion chunk stream.
  */
-export type ReasoningStream = Stream<ReasoningChatCompletionChunk>;
+export type ReasoningStream = Stream<ReasoningChatCompletionChunkOk>;
 
 export namespace ReasoningStream {
   /**
@@ -806,7 +806,13 @@ export namespace ReasoningStream {
   ): ReasoningStream {
     return new Stream(async function* () {
       for await (const chunk of stream) {
-        yield ReasoningChatCompletionChunk.fromOpenAIChatCompletionChunk(chunk);
+        const reasoningChunk =
+          ReasoningChatCompletionChunk.fromOpenAIChatCompletionChunk(chunk);
+        if ("code" in reasoningChunk) {
+          throw new Error(JSON.stringify(reasoningChunk, null, 2));
+        } else {
+          yield reasoningChunk;
+        }
       }
     }, stream.controller);
   }
@@ -817,16 +823,12 @@ export namespace ReasoningStream {
    * @param chunk - The OpenAI chat completion chunk stream to convert.
    * @returns The converted merged Reasoning chat completion chunk stream.
    */
-  export function merged(
-    stream: Stream<ReasoningChatCompletionChunk>
-  ): ReasoningStream {
+  export function merged(stream: ReasoningStream): ReasoningStream {
     return new Stream(async function* () {
-      let merged: ReasoningChatCompletionChunk | null = null;
+      let merged: ReasoningChatCompletionChunkOk | null = null;
       for await (const chunk of stream) {
-        if (merged === null || "code" in chunk) {
+        if (merged === null) {
           merged = chunk;
-        } else if ("code" in merged) {
-          merged = merged;
         } else {
           merged = ReasoningChatCompletionChunk.merged(merged, chunk);
         }
