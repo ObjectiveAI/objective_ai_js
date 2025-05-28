@@ -123,7 +123,7 @@ export namespace ToolCall {
       if (function_.name === "think") {
         return {
           ...function_,
-          parsed_arguments: function_.arguments as string,
+          parsed_arguments: JSON.parse(function_.arguments),
         } as ThinkFunction;
       } else if (function_.name === "objective_ai_query") {
         return {
