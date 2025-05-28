@@ -183,15 +183,17 @@ export namespace QueryChatCompletionChunk {
     self: QueryChatCompletionChunk,
     { choices, usage }: QueryChatCompletionChunk
   ): QueryChatCompletionChunk {
+    const merged = { ...self, choices: [...self.choices] };
     for (const choice of choices) {
-      if (!self.choices.some((c) => c.index === choice.index)) {
-        self.choices.push(choice);
+      if (!merged.choices.some((c) => c.index === choice.index)) {
+        merged.choices.push(choice);
       }
+      // choices with existing index are silently ignored
     }
-    if (self.usage === undefined || self.usage === null) {
-      self.usage = usage;
+    if (merged.usage === undefined || merged.usage === null) {
+      merged.usage = usage;
     }
-    return { ...self };
+    return merged;
   }
 
   /**
