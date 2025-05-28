@@ -129,9 +129,9 @@ export namespace QueryAssistantMessageContent {
     if (typeof reasoning !== "string") {
       return throwError("reasoning was not a string");
     }
-    if (response !== undefined && typeof response !== "object") {
-      return throwError("response was not an object");
-    }
+    // if (response !== undefined && typeof response !== "object") {
+    //   return throwError("response was not an object");
+    // }
     if (typeof weight !== "number") {
       return throwError("weight was not a number");
     }
