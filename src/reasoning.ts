@@ -150,22 +150,22 @@ export namespace ToolCall {
 export interface ToolResponseChunkBaseContent {
   type: "tool_response_chunk";
   tool_call_id: string;
-  response: unknown;
+  chunk: unknown;
 }
 
 export interface ToolResponseChunkObjectiveAIQueryContent
   extends ToolResponseChunkBaseContent {
-  response: QueryChatCompletionChunk;
+  chunk: QueryChatCompletionChunk;
 }
 
 export interface ToolResponseChunkExaSearchContent
   extends ToolResponseChunkBaseContent {
-  response: Exa.SearchResponse<{}>;
+  chunk: Exa.SearchResponse<{}>;
 }
 
 export interface ToolResponseChunkExaContentsContent
   extends ToolResponseChunkBaseContent {
-  response: Exa.SearchResponse<{ text: true }>;
+  chunk: Exa.SearchResponse<{ text: true }>;
 }
 
 export type ToolResponseChunkContent =
@@ -184,16 +184,16 @@ export namespace ToolResponseChunkContent {
     }
   ): ToolResponseChunkContent {
     if (
-      typeof reasoning.response === "object" &&
-      reasoning.response !== null &&
-      !Array.isArray(reasoning.response) &&
-      "choices" in reasoning.response
+      typeof reasoning.chunk === "object" &&
+      reasoning.chunk !== null &&
+      !Array.isArray(reasoning.chunk) &&
+      "choices" in reasoning.chunk
     ) {
       return {
         type: "tool_response_chunk",
         tool_call_id: reasoning.tool_call_id,
-        response: QueryChatCompletionChunk.fromOpenAIChatCompletionChunk(
-          reasoning.response as unknown as OpenAI.ChatCompletionChunk
+        chunk: QueryChatCompletionChunk.fromOpenAIChatCompletionChunk(
+          reasoning.chunk as unknown as OpenAI.ChatCompletionChunk
         ),
       };
     } else {
@@ -337,7 +337,7 @@ export namespace ReasoningContents {
     for (const content of chunk) {
       if (
         content.type === "tool_response_chunk" &&
-        "choices" in content.response
+        "choices" in content.chunk
       ) {
         const existingChunkIndex = merged.findIndex(
           (c) =>
@@ -345,17 +345,14 @@ export namespace ReasoningContents {
             "choices" in c &&
             c.tool_call_id === content.tool_call_id
         );
-        const { type, tool_call_id, response } = merged[
+        const { type, tool_call_id, chunk } = merged[
           existingChunkIndex
         ] as ToolResponseChunkObjectiveAIQueryContent;
         if (existingChunkIndex >= 0) {
           merged[existingChunkIndex] = {
             type,
             tool_call_id,
-            response: QueryChatCompletionChunk.merged(
-              response,
-              content.response
-            ),
+            chunk: QueryChatCompletionChunk.merged(chunk, content.chunk),
           };
         } else {
           merged.push(content);
