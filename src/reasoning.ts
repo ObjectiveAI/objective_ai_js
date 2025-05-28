@@ -342,13 +342,13 @@ export namespace ReasoningContents {
         const existingChunkIndex = merged.findIndex(
           (c) =>
             c.type === "tool_response_chunk" &&
-            "choices" in c &&
+            "choices" in c.chunk &&
             c.tool_call_id === content.tool_call_id
         );
-        const { type, tool_call_id, chunk } = merged[
-          existingChunkIndex
-        ] as ToolResponseChunkObjectiveAIQueryContent;
         if (existingChunkIndex >= 0) {
+          const { type, tool_call_id, chunk } = merged[
+            existingChunkIndex
+          ] as ToolResponseChunkObjectiveAIQueryContent;
           merged[existingChunkIndex] = {
             type,
             tool_call_id,
@@ -609,6 +609,7 @@ export namespace ReasoningChatCompletionChunk {
                 merged.push(toolCall);
               }
             }
+            return merged;
           }
         };
         const mergedReasoning = mergeStrings(selfReasoning, mergeReasoning);
@@ -621,14 +622,32 @@ export namespace ReasoningChatCompletionChunk {
         } else {
           mergedParsedReasoning = undefined;
         }
-        return {
+        const delta = {
           content: mergeStrings(selfContent, mergeContent),
           reasoning: mergedReasoning,
           parsed_reasoning: mergedParsedReasoning,
           refusal: mergeStrings(selfRefusal, mergeRefusal),
           role: mergeRole ?? selfRole,
           tool_calls: mergeToolCalls(selfToolCalls, mergeToolCalls_),
-        } as Delta;
+        };
+        if (
+          delta.reasoning === undefined &&
+          delta.parsed_reasoning === undefined
+        ) {
+          return delta as typeof delta & {
+            reasoning?: undefined;
+            parsed_reasoning?: undefined;
+          };
+        } else if (delta.reasoning && delta.parsed_reasoning) {
+          return delta as typeof delta & {
+            reasoning: string;
+            parsed_reasoning: ReasoningContents;
+          };
+        } else {
+          throw new Error(
+            "invalid reasoning delta: reasoning and parsed_reasoning must both be defined or both be undefined."
+          );
+        }
       }
       /**
        * Converts an OpenAI chat completion chunk choice delta to a Reasoning chat completion chunk choice delta.
