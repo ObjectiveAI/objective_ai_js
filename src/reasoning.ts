@@ -42,6 +42,22 @@ export namespace ToolCall {
     };
   }
 
+  /**
+   * If this is returned, then the assistant's arguments were invalid.
+   */
+  export interface QueriesFunction
+    extends OpenAI.ChatCompletionMessageToolCall.Function {
+    /**
+     * The name of the function to call.
+     */
+    name: "queries";
+
+    /**
+     * The native JSON arguments of the function call.
+     */
+    parsed_arguments: JsonValue;
+  }
+
   export interface ThinkFunction
     extends OpenAI.ChatCompletionMessageToolCall.Function {
     /**
@@ -89,10 +105,9 @@ export namespace ToolCall {
       think: string;
       query: string;
       category?: string;
-      start_published_date?: string;
-      end_published_date?: string;
-      include_domains?: string[];
-      exclude_domains?: string[];
+      startPublishedDate?: string;
+      includeDomains?: string[];
+      excludeDomains?: string[];
     };
   }
 
@@ -107,30 +122,16 @@ export namespace ToolCall {
      * The native JSON arguments of the function call.
      */
     parsed_arguments: {
-      think: string;
-      exaContents: string[];
+      open_urls: string[];
     };
   }
 
-  export interface ErrorFunction
-    extends OpenAI.ChatCompletionMessageToolCall.Function {
-    /**
-     * The name of the function to call.
-     */
-    name: "objective_ai_queries" | "exa_searches";
-
-    /**
-     * The native JSON arguments of the function call.
-     */
-    parsed_arguments: string;
-  }
-
   export type Function =
+    | QueriesFunction
     | ThinkFunction
     | ObjectiveAIQueryFunction
     | ExaSearchFunction
-    | ExaContentsFunction
-    | ErrorFunction;
+    | ExaContentsFunction;
 
   export namespace Function {
     /**
@@ -141,7 +142,12 @@ export namespace ToolCall {
     export function fromOpenAIFunction(
       function_: OpenAI.ChatCompletionMessageToolCall.Function
     ): ToolCall.Function {
-      if (function_.name === "think") {
+      if (function_.name === "queries") {
+        return {
+          ...function_,
+          parsed_arguments: JSON.parse(function_.arguments),
+        } as QueriesFunction;
+      } else if (function_.name === "think") {
         return {
           ...function_,
           parsed_arguments: JSON.parse(function_.arguments),
@@ -161,14 +167,6 @@ export namespace ToolCall {
           ...function_,
           parsed_arguments: JSON.parse(function_.arguments),
         } as ExaContentsFunction;
-      } else if (
-        function_.name === "objective_ai_queries" ||
-        function_.name === "exa_searches"
-      ) {
-        return {
-          ...function_,
-          parsed_arguments: function_.arguments,
-        } as ErrorFunction;
       } else {
         throw new Error(`Unknown tool call function name: ${function_.name}`);
       }
