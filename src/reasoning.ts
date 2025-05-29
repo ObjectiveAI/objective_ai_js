@@ -52,7 +52,9 @@ export namespace ToolCall {
     /**
      * The native JSON arguments of the function call.
      */
-    parsed_arguments: string;
+    parsed_arguments: {
+      think: string;
+    };
   }
 
   export interface ObjectiveAIQueryFunction
@@ -66,6 +68,7 @@ export namespace ToolCall {
      * The native JSON arguments of the function call.
      */
     parsed_arguments: {
+      think: string;
       query: string;
       schema: { [key: string]: JsonValue };
       model: string;
@@ -83,6 +86,7 @@ export namespace ToolCall {
      * The native JSON arguments of the function call.
      */
     parsed_arguments: {
+      think: string;
       query: string;
       category?: string;
       start_published_date?: string;
@@ -102,7 +106,10 @@ export namespace ToolCall {
     /**
      * The native JSON arguments of the function call.
      */
-    parsed_arguments: string[];
+    parsed_arguments: {
+      think: string;
+      exaContents: string[];
+    };
   }
 
   export type Function =
