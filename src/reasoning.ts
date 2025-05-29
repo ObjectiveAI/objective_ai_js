@@ -418,7 +418,7 @@ export interface ReasoningChatCompletionChunkOk
 
 export interface ReasoningChatCompletionChunkErr {
   code: number;
-  message: string;
+  message: JsonValue;
   metadata?: JsonValue;
 }
 
@@ -676,6 +676,7 @@ export namespace ReasoningChatCompletionChunk {
           );
         }
       }
+
       /**
        * Converts an OpenAI chat completion chunk choice delta to a Reasoning chat completion chunk choice delta.
        * @param delta - The OpenAI chat completion chunk choice delta to convert.
