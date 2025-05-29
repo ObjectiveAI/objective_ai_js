@@ -112,11 +112,25 @@ export namespace ToolCall {
     };
   }
 
+  export interface ErrorFunction
+    extends OpenAI.ChatCompletionMessageToolCall.Function {
+    /**
+     * The name of the function to call.
+     */
+    name: "objective_ai_queries" | "exa_searches";
+
+    /**
+     * The native JSON arguments of the function call.
+     */
+    parsed_arguments: string;
+  }
+
   export type Function =
     | ThinkFunction
     | ObjectiveAIQueryFunction
     | ExaSearchFunction
-    | ExaContentsFunction;
+    | ExaContentsFunction
+    | ErrorFunction;
 
   export namespace Function {
     /**
@@ -147,6 +161,14 @@ export namespace ToolCall {
           ...function_,
           parsed_arguments: JSON.parse(function_.arguments),
         } as ExaContentsFunction;
+      } else if (
+        function_.name === "objective_ai_queries" ||
+        function_.name === "exa_searches"
+      ) {
+        return {
+          ...function_,
+          parsed_arguments: function_.arguments,
+        } as ErrorFunction;
       } else {
         throw new Error(`Unknown tool call function name: ${function_.name}`);
       }
