@@ -111,7 +111,7 @@ export namespace ToolCall {
     };
   }
 
-  export interface ExaContentsFunction
+  export interface ExaContentsFunctionOk
     extends OpenAI.ChatCompletionMessageToolCall.Function {
     /**
      * The name of the function to call.
@@ -125,6 +125,22 @@ export namespace ToolCall {
       open_urls: string[];
     };
   }
+
+  export interface ExaContentsFunctionErr
+    extends OpenAI.ChatCompletionMessageToolCall.Function {
+    /**
+     * The name of the function to call.
+     */
+    name: "exa_contents";
+    /**
+     * The native JSON arguments of the function call.
+     */
+    parsed_arguments: JsonValue;
+  }
+
+  export type ExaContentsFunction =
+    | ExaContentsFunctionOk
+    | ExaContentsFunctionErr;
 
   export type Function =
     | QueriesFunction
