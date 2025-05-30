@@ -545,6 +545,12 @@ export namespace ReasoningChatCompletionChunk {
            * The native JSON reasoning of the Reasoning completion delta.
            */
           parsed_reasoning: ReasoningContents;
+
+          /**
+           * Annotations for the message, when applicable, as when using the
+           * [web search tool](https://platform.openai.com/docs/guides/tools-web-search?api-mode=chat).
+           */
+          annotations?: Array<OpenAI.ChatCompletionMessage.Annotation>;
         })
       | (OpenAI.ChatCompletionChunk.Choice.Delta & {
           /**
@@ -555,6 +561,12 @@ export namespace ReasoningChatCompletionChunk {
            * The native JSON reasoning of the Reasoning completion delta.
            */
           parsed_reasoning?: undefined;
+
+          /**
+           * Annotations for the message, when applicable, as when using the
+           * [web search tool](https://platform.openai.com/docs/guides/tools-web-search?api-mode=chat).
+           */
+          annotations?: Array<OpenAI.ChatCompletionMessage.Annotation>;
         });
 
     export namespace Delta {
@@ -572,6 +584,7 @@ export namespace ReasoningChatCompletionChunk {
           refusal: selfRefusal,
           role: selfRole,
           tool_calls: selfToolCalls,
+          annotations: selfAnnotations,
         }: Delta,
         {
           content: mergeContent,
@@ -580,6 +593,7 @@ export namespace ReasoningChatCompletionChunk {
           refusal: mergeRefusal,
           role: mergeRole,
           tool_calls: mergeToolCalls_,
+          annotations: mergeAnnotations_,
         }: Delta
       ): Delta {
         const mergeStrings = (
@@ -655,6 +669,18 @@ export namespace ReasoningChatCompletionChunk {
             return merged;
           }
         };
+        const mergeAnnotations = (
+          existing: Array<OpenAI.ChatCompletionMessage.Annotation> | undefined,
+          incoming: Array<OpenAI.ChatCompletionMessage.Annotation> | undefined
+        ): Array<OpenAI.ChatCompletionMessage.Annotation> | undefined => {
+          if (existing === undefined || existing.length === 0) {
+            return incoming;
+          } else if (incoming === undefined || incoming.length === 0) {
+            return existing;
+          } else {
+            return [...existing, ...incoming];
+          }
+        };
         const mergedReasoning = mergeStrings(selfReasoning, mergeReasoning);
         let mergedParsedReasoning: ReasoningContents | undefined;
         if (mergedReasoning) {
@@ -672,6 +698,7 @@ export namespace ReasoningChatCompletionChunk {
           refusal: mergeStrings(selfRefusal, mergeRefusal),
           role: mergeRole ?? selfRole,
           tool_calls: mergeToolCalls(selfToolCalls, mergeToolCalls_),
+          annotations: mergeAnnotations(selfAnnotations, mergeAnnotations_),
         };
         if (
           delta.reasoning === undefined &&
