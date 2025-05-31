@@ -74,6 +74,7 @@ export namespace ToolCall {
         think: string;
         claim: string;
         citations: string[];
+        think_next: string;
       }[];
     };
   }
