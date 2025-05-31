@@ -94,6 +94,7 @@ export namespace ToolCall {
       query: string;
       schema: { [key: string]: JsonValue };
       model: string;
+      think_next: string;
     };
   }
 
@@ -114,6 +115,7 @@ export namespace ToolCall {
       startPublishedDate?: string;
       includeDomains?: string[];
       excludeDomains?: string[];
+      think_next: string;
     };
   }
 
