@@ -69,13 +69,12 @@ export namespace ToolCall {
      * The native JSON arguments of the function call.
      */
     parsed_arguments: {
-      think:
-        | string
-        | {
-            think: string;
-            claim: string;
-            citations: string[];
-          }[];
+      think: string;
+      cited_claims?: {
+        think: string;
+        claim: string;
+        citations: string[];
+      }[];
     };
   }
 
