@@ -213,7 +213,7 @@ export interface ToolResponseChunkExaSearchContent
 
 export interface ToolResponseChunkExaContentsContent
   extends ToolResponseChunkBaseContent {
-  chunk: Exa.SearchResponse<{ text: true }>;
+  chunk: Exa.SearchResponse<{ highlights: true }>;
 }
 
 export type ToolResponseChunkContent =
