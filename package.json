@@ -42,8 +42,10 @@
     }
   },
   "devDependencies": {
+    "@types/json-schema": "^7.0.15",
+    "@types/json5": "^0.0.30",
+    "exa-js": "^1.7.2",
     "openai": "^4.98.0",
-    "typescript": "^5.8.3",
-    "exa-js": "^1.7.2"
+    "typescript": "^5.8.3"
   }
 }
