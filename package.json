@@ -36,10 +36,14 @@
       "import": "./dist/query.js",
       "types": "./dist/query.d.ts"
     },
+    "./query_tool": {
+      "import": "./dist/query_tool.js",
+      "types": "./dist/query_tool.d.ts"
+    },
     "./reasoning": {
       "import": "./dist/reasoning.js",
       "types": "./dist/reasoning.d.ts"
-    }
+    }    
   },
   "devDependencies": {
     "@types/json-schema": "^7.0.15",
