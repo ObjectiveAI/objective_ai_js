@@ -338,7 +338,13 @@ export namespace QueryToolChatCompletionChunk {
         }
         const content = mergeStrings(selfContent, mergeContent);
         let mergedQueryToolContent: JsonValue | undefined = content
-          ? JSON.parse(content)
+          ? (() => {
+              try {
+                return JSON.parse(content);
+              } catch {
+                return content;
+              }
+            })()
           : undefined;
         const delta = {
           content,
