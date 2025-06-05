@@ -534,7 +534,13 @@ export namespace QueryToolChatCompletionChunk {
               return {
                 ...deltaCasted,
                 content: deltaCasted.content,
-                query_tool_content: JSON.parse(deltaCasted.content),
+                query_tool_content: (() => {
+                  try {
+                    return JSON.parse(deltaCasted.content);
+                  } catch {
+                    return deltaCasted.content;
+                  }
+                })(),
                 reasoning: undefined,
                 parsed_reasoning: undefined,
               } as typeof deltaCasted & {
@@ -551,7 +557,13 @@ export namespace QueryToolChatCompletionChunk {
               return {
                 ...deltaCasted,
                 content: deltaCasted.content,
-                query_tool_content: JSON.parse(deltaCasted.content),
+                query_tool_content: (() => {
+                  try {
+                    return JSON.parse(deltaCasted.content);
+                  } catch {
+                    return deltaCasted.content;
+                  }
+                })(),
               } as typeof deltaCasted & {
                 content: string;
                 query_tool_content: JsonValue;
@@ -567,7 +579,13 @@ export namespace QueryToolChatCompletionChunk {
             return {
               ...deltaCasted,
               content: deltaCasted.content,
-              query_tool_content: JSON.parse(deltaCasted.content),
+              query_tool_content: (() => {
+                try {
+                  return JSON.parse(deltaCasted.content);
+                } catch {
+                  return deltaCasted.content;
+                }
+              })(),
               reasoning: deltaCasted.reasoning,
               parsed_reasoning: deltaCasted
                 .reasoning!.split("\n")
