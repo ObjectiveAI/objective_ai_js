@@ -399,6 +399,7 @@ export namespace QueryToolChatCompletionChunk {
                 reasoning: deltaCasted.reasoning,
                 parsed_reasoning: deltaCasted.reasoning
                   .split("\n")
+                  .filter((line) => line !== "")
                   .map((line) => JSON.parse(line)),
               };
             }
@@ -441,6 +442,7 @@ export namespace QueryToolChatCompletionChunk {
                 reasoning: deltaCasted.reasoning,
                 parsed_reasoning: deltaCasted.reasoning
                   .split("\n")
+                  .filter((line) => line !== "")
                   .map((line) =>
                     QueryChatCompletionChunk.fromOpenAIChatCompletionChunk(
                       JSON.parse(line)
@@ -496,6 +498,7 @@ export namespace QueryToolChatCompletionChunk {
               reasoning: deltaCasted.reasoning,
               parsed_reasoning: deltaCasted.reasoning
                 .split("\n")
+                .filter((line) => line !== "")
                 .map((line) =>
                   QueryChatCompletionChunk.fromOpenAIChatCompletionChunk(
                     JSON.parse(line)
@@ -513,6 +516,7 @@ export namespace QueryToolChatCompletionChunk {
             reasoning: deltaCasted.reasoning,
             parsed_reasoning: deltaCasted
               .reasoning!.split("\n")
+              .filter((line) => line !== "")
               .map((line) =>
                 QueryChatCompletionChunk.fromOpenAIChatCompletionChunk(
                   JSON.parse(line)
