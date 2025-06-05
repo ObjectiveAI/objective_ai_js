@@ -141,29 +141,29 @@ export namespace QueryToolChatCompletionChunk {
           /**
            * The contents of the chunk message.
            */
-          content: null;
+          content: string;
           /**
            * The native JSON contents of the Query Tool completion delta.
            */
-          query_tool_content: null;
+          query_tool_content: JsonValue;
           /**
            * The reasoning of the chunk message.
            */
-          reasoning: string;
+          reasoning?: undefined;
           /**
            * The native JSON reasoning of the Query Tool completion delta.
            */
-          parsed_reasoning: QueryChatCompletionChunk[];
+          parsed_reasoning?: undefined;
         })
       | (OpenAI.ChatCompletionChunk.Choice.Delta & {
           /**
            * The contents of the chunk message.
            */
-          content?: undefined;
+          content: null;
           /**
            * The native JSON contents of the Query Tool completion delta.
            */
-          query_tool_content?: undefined;
+          query_tool_content: null;
           /**
            * The reasoning of the chunk message.
            */
@@ -190,6 +190,24 @@ export namespace QueryToolChatCompletionChunk {
            * The native JSON reasoning of the Query Tool completion delta.
            */
           parsed_reasoning?: undefined;
+        })
+      | (OpenAI.ChatCompletionChunk.Choice.Delta & {
+          /**
+           * The contents of the chunk message.
+           */
+          content?: undefined;
+          /**
+           * The native JSON contents of the Query Tool completion delta.
+           */
+          query_tool_content?: undefined;
+          /**
+           * The reasoning of the chunk message.
+           */
+          reasoning: string;
+          /**
+           * The native JSON reasoning of the Query Tool completion delta.
+           */
+          parsed_reasoning: QueryChatCompletionChunk[];
         })
       | (OpenAI.ChatCompletionChunk.Choice.Delta & {
           /**
@@ -507,27 +525,65 @@ export namespace QueryToolChatCompletionChunk {
             };
           }
         } else {
-          // content is a string
-          // query_tool_content will be a QueryToolAssistantMessageContent
-          return {
-            ...deltaCasted,
-            content: deltaCasted.content,
-            query_tool_content: JSON.parse(deltaCasted.content),
-            reasoning: deltaCasted.reasoning,
-            parsed_reasoning: deltaCasted
-              .reasoning!.split("\n")
-              .filter((line) => line !== "")
-              .map((line) =>
-                QueryChatCompletionChunk.fromOpenAIChatCompletionChunk(
-                  JSON.parse(line)
-                )
-              ),
-          } as typeof deltaCasted & {
-            content: string;
-            query_tool_content: JsonValue;
-            reasoning: string;
-            parsed_reasoning: QueryChatCompletionChunk[];
-          };
+          if (deltaCasted.reasoning === undefined) {
+            if ("reasoning" in deltaCasted) {
+              // content is a string
+              // query_tool_content will be a QueryToolAssistantMessageContent
+              // reasoning is present but undefined
+              // parsed_reasoning will be present but undefined
+              return {
+                ...deltaCasted,
+                content: deltaCasted.content,
+                query_tool_content: JSON.parse(deltaCasted.content),
+                reasoning: undefined,
+                parsed_reasoning: undefined,
+              } as typeof deltaCasted & {
+                content: string;
+                query_tool_content: JsonValue;
+                reasoning?: undefined;
+                parsed_reasoning?: undefined;
+              };
+            } else {
+              // content is a string
+              // query_tool_content will be a QueryToolAssistantMessageContent
+              // reasoning is not present
+              // parsed_reasoning will be not present
+              return {
+                ...deltaCasted,
+                content: deltaCasted.content,
+                query_tool_content: JSON.parse(deltaCasted.content),
+              } as typeof deltaCasted & {
+                content: string;
+                query_tool_content: JsonValue;
+                reasoning?: undefined;
+                parsed_reasoning?: undefined;
+              };
+            }
+          } else {
+            // content is a string
+            // query_tool_content will be a QueryToolAssistantMessageContent
+            // reasoning is present
+            // parsed_reasoning will be present
+            return {
+              ...deltaCasted,
+              content: deltaCasted.content,
+              query_tool_content: JSON.parse(deltaCasted.content),
+              reasoning: deltaCasted.reasoning,
+              parsed_reasoning: deltaCasted
+                .reasoning!.split("\n")
+                .filter((line) => line !== "")
+                .map((line) =>
+                  QueryChatCompletionChunk.fromOpenAIChatCompletionChunk(
+                    JSON.parse(line)
+                  )
+                ),
+            } as typeof deltaCasted & {
+              content: string;
+              query_tool_content: JsonValue;
+              reasoning: string;
+              parsed_reasoning: QueryChatCompletionChunk[];
+            };
+          }
         }
       }
     }
