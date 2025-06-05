@@ -7,13 +7,23 @@ import { JsonValue, QueryChatCompletionChunk } from "./query";
  * based on the provided input.
  * [Learn more](https://platform.openai.com/docs/guides/streaming-responses).
  */
-export interface QueryToolChatCompletionChunk
+export interface QueryToolChatCompletionChunkOk
   extends OpenAI.ChatCompletionChunk {
   /**
    * A list of Query chat completion choices.
    */
   choices: Array<QueryToolChatCompletionChunk.Choice>;
 }
+
+export interface QueryToolChatCompletionChunkErr {
+  code: number;
+  message: JsonValue;
+  metadata?: JsonValue;
+}
+
+export type QueryToolChatCompletionChunk =
+  | QueryToolChatCompletionChunkOk
+  | QueryToolChatCompletionChunkErr;
 
 export namespace QueryToolChatCompletionChunk {
   /**
@@ -23,9 +33,9 @@ export namespace QueryToolChatCompletionChunk {
    * @returns A new merged QueryToolChatCompletionChunk object.
    */
   export function merged(
-    self: QueryToolChatCompletionChunk,
-    { choices, usage }: QueryToolChatCompletionChunk
-  ): QueryToolChatCompletionChunk {
+    self: QueryToolChatCompletionChunkOk,
+    { choices, usage }: QueryToolChatCompletionChunkOk
+  ): QueryToolChatCompletionChunkOk {
     const merged = { ...self, choices: [...self.choices] };
     for (const choice of choices) {
       const selfChoiceIndex = merged.choices.findIndex(
@@ -55,10 +65,14 @@ export namespace QueryToolChatCompletionChunk {
   export function fromOpenAIChatCompletionChunk(
     chunk: OpenAI.ChatCompletionChunk
   ): QueryToolChatCompletionChunk {
-    return {
-      ...chunk,
-      choices: chunk.choices.map(Choice.fromOpenAIChoice),
-    };
+    if ("code" in chunk) {
+      return chunk as unknown as QueryToolChatCompletionChunkErr;
+    } else {
+      return {
+        ...chunk,
+        choices: chunk.choices.map(Choice.fromOpenAIChoice),
+      };
+    }
   }
 
   export interface Choice extends OpenAI.ChatCompletionChunk.Choice {
@@ -520,7 +534,7 @@ export namespace QueryToolChatCompletionChunk {
  * Stream of QueryToolChatCompletionChunk objects.
  * Can be easily constructed from an OpenAI chat completion chunk stream.
  */
-export type QueryToolStream = Stream<QueryToolChatCompletionChunk>;
+export type QueryToolStream = Stream<QueryToolChatCompletionChunkOk>;
 
 export namespace QueryToolStream {
   /**
@@ -533,7 +547,13 @@ export namespace QueryToolStream {
   ): QueryToolStream {
     return new Stream(async function* () {
       for await (const chunk of stream) {
-        yield QueryToolChatCompletionChunk.fromOpenAIChatCompletionChunk(chunk);
+        const queryToolChunk =
+          QueryToolChatCompletionChunk.fromOpenAIChatCompletionChunk(chunk);
+        if ("code" in queryToolChunk) {
+          throw new Error(JSON.stringify(queryToolChunk, null, 2));
+        } else {
+          yield queryToolChunk;
+        }
       }
     }, stream.controller);
   }
@@ -545,10 +565,10 @@ export namespace QueryToolStream {
    * @returns The converted merged Query Tool chat completion chunk stream.
    */
   export function merged(
-    stream: Stream<QueryToolChatCompletionChunk>
+    stream: Stream<QueryToolChatCompletionChunkOk>
   ): QueryToolStream {
     return new Stream(async function* () {
-      let merged: QueryToolChatCompletionChunk | null = null;
+      let merged: QueryToolChatCompletionChunkOk | null = null;
       for await (const chunk of stream) {
         if (merged === null) {
           merged = chunk;
