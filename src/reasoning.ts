@@ -1,7 +1,10 @@
-import * as Exa from "exa-js";
 import OpenAI from "openai";
-import { JsonValue, QueryChatCompletionChunk } from "./query";
+import { JsonValue } from "./query";
 import { Stream } from "openai/streaming";
+import {
+  QueryToolChatCompletionChunk,
+  QueryToolChatCompletionChunkOk,
+} from "./query_tool";
 
 export interface ToolCallMessageContent {
   type: "tool_call_message";
@@ -79,12 +82,12 @@ export namespace ToolCall {
     };
   }
 
-  export interface ObjectiveAIQueryFunction
+  export interface ObjectiveAINumberQueryFunction
     extends OpenAI.ChatCompletionMessageToolCall.Function {
     /**
      * The name of the function to call.
      */
-    name: "objective_ai_query";
+    name: "objective_ai_number_query";
 
     /**
      * The native JSON arguments of the function call.
@@ -92,18 +95,17 @@ export namespace ToolCall {
     parsed_arguments: {
       think: string;
       query: string;
-      schema: { [key: string]: JsonValue };
       model: string;
       think_next: string;
     };
   }
 
-  export interface ExaSearchFunction
+  export interface ObjectiveAIExpertQueryFunction
     extends OpenAI.ChatCompletionMessageToolCall.Function {
     /**
      * The name of the function to call.
      */
-    name: "exa_search";
+    name: "objective_ai_expert_query";
 
     /**
      * The native JSON arguments of the function call.
@@ -111,51 +113,36 @@ export namespace ToolCall {
     parsed_arguments: {
       think: string;
       query: string;
-      category?: string;
-      startPublishedDate?: string;
-      includeDomains?: string[];
-      excludeDomains?: string[];
+      model: string;
       think_next: string;
     };
   }
 
-  export interface ExaContentsFunctionOk
+  export interface ObjectiveAIUnorderedOptionsQueryFunction
     extends OpenAI.ChatCompletionMessageToolCall.Function {
     /**
      * The name of the function to call.
      */
-    name: "exa_contents";
+    name: "objective_ai_unordered_options_query";
 
     /**
      * The native JSON arguments of the function call.
      */
     parsed_arguments: {
-      open_urls: string[];
+      think: string;
+      query: string;
+      format: string;
+      model: string;
+      think_next: string;
     };
   }
-
-  export interface ExaContentsFunctionErr
-    extends OpenAI.ChatCompletionMessageToolCall.Function {
-    /**
-     * The name of the function to call.
-     */
-    name: "exa_contents";
-    /**
-     * The native JSON arguments of the function call.
-     */
-    parsed_arguments: JsonValue;
-  }
-
-  export type ExaContentsFunction =
-    | ExaContentsFunctionOk
-    | ExaContentsFunctionErr;
 
   export type Function =
     | QueriesFunction
     | ThinkFunction
-    | ObjectiveAIQueryFunction
-    | ExaSearchFunction
-    | ExaContentsFunction;
+    | ObjectiveAINumberQueryFunction
+    | ObjectiveAIExpertQueryFunction
+    | ObjectiveAIUnorderedOptionsQueryFunction;
 
   export namespace Function {
     /**
@@ -176,21 +163,21 @@ export namespace ToolCall {
           ...function_,
           parsed_arguments: JSON.parse(function_.arguments),
         } as ThinkFunction;
-      } else if (function_.name === "objective_ai_query") {
+      } else if (function_.name === "objective_ai_number_query") {
         return {
           ...function_,
           parsed_arguments: JSON.parse(function_.arguments),
-        } as ObjectiveAIQueryFunction;
-      } else if (function_.name === "exa_search") {
+        } as ObjectiveAINumberQueryFunction;
+      } else if (function_.name === "objective_ai_expert_query") {
         return {
           ...function_,
           parsed_arguments: JSON.parse(function_.arguments),
-        } as ExaSearchFunction;
-      } else if (function_.name === "exa_contents") {
+        } as ObjectiveAIExpertQueryFunction;
+      } else if (function_.name === "objective_ai_unordered_options_query") {
         return {
           ...function_,
           parsed_arguments: JSON.parse(function_.arguments),
-        } as ExaContentsFunction;
+        } as ObjectiveAIUnorderedOptionsQueryFunction;
       } else {
         throw new Error(`Unknown tool call function name: ${function_.name}`);
       }
@@ -198,31 +185,11 @@ export namespace ToolCall {
   }
 }
 
-export interface ToolResponseChunkBaseContent {
+export interface ToolResponseChunkContent {
   type: "tool_response_chunk";
   tool_call_id: string;
-  chunk: unknown;
+  chunk: QueryToolChatCompletionChunk;
 }
-
-export interface ToolResponseChunkObjectiveAIQueryContent
-  extends ToolResponseChunkBaseContent {
-  chunk: QueryChatCompletionChunk;
-}
-
-export interface ToolResponseChunkExaSearchContent
-  extends ToolResponseChunkBaseContent {
-  chunk: Exa.SearchResponse<{}>;
-}
-
-export interface ToolResponseChunkExaContentsContent
-  extends ToolResponseChunkBaseContent {
-  chunk: Exa.SearchResponse<{ highlights: true }>;
-}
-
-export type ToolResponseChunkContent =
-  | ToolResponseChunkObjectiveAIQueryContent
-  | ToolResponseChunkExaSearchContent
-  | ToolResponseChunkExaContentsContent;
 
 export namespace ToolResponseChunkContent {
   /**
@@ -243,7 +210,7 @@ export namespace ToolResponseChunkContent {
       return {
         type: "tool_response_chunk",
         tool_call_id: reasoning.tool_call_id,
-        chunk: QueryChatCompletionChunk.fromOpenAIChatCompletionChunk(
+        chunk: QueryToolChatCompletionChunk.fromOpenAIChatCompletionChunk(
           reasoning.chunk as unknown as OpenAI.ChatCompletionChunk
         ),
       };
@@ -399,11 +366,14 @@ export namespace ReasoningContents {
         if (existingChunkIndex >= 0) {
           const { type, tool_call_id, chunk } = merged[
             existingChunkIndex
-          ] as ToolResponseChunkObjectiveAIQueryContent;
+          ] as ToolResponseChunkContent;
           merged[existingChunkIndex] = {
             type,
             tool_call_id,
-            chunk: QueryChatCompletionChunk.merged(chunk, content.chunk),
+            chunk: QueryToolChatCompletionChunk.merged(
+              chunk as QueryToolChatCompletionChunkOk,
+              content.chunk
+            ),
           };
         } else {
           merged.push(content);
