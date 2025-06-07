@@ -188,7 +188,7 @@ export namespace ToolCall {
 export interface ToolResponseChunkContent {
   type: "tool_response_chunk";
   tool_call_id: string;
-  chunk: QueryToolChatCompletionChunk;
+  chunk: QueryToolChatCompletionChunkOk;
 }
 
 export namespace ToolResponseChunkContent {
@@ -212,7 +212,7 @@ export namespace ToolResponseChunkContent {
         tool_call_id: reasoning.tool_call_id,
         chunk: QueryToolChatCompletionChunk.fromOpenAIChatCompletionChunk(
           reasoning.chunk as unknown as OpenAI.ChatCompletionChunk
-        ),
+        ) as QueryToolChatCompletionChunkOk,
       };
     } else {
       return reasoning as unknown as ToolResponseChunkContent;
