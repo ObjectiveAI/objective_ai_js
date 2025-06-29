@@ -1,6 +1,6 @@
 {
   "name": "objective-ai",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Client library for the Objective AI API, intended for use in conjunction with the OpenAI SDK.",
   "main": "dist/index.js",
   "scripts": {
@@ -32,18 +32,10 @@
     "dist"
   ],
   "exports": {
-    "./query": {
-      "import": "./dist/query.js",
-      "types": "./dist/query.d.ts"
-    },
-    "./query_tool": {
-      "import": "./dist/query_tool.js",
-      "types": "./dist/query_tool.d.ts"
-    },
-    "./reasoning": {
-      "import": "./dist/reasoning.js",
-      "types": "./dist/reasoning.d.ts"
-    }    
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
   },
   "devDependencies": {
     "@types/json-schema": "^7.0.15",
