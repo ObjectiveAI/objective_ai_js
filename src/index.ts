@@ -8,7 +8,7 @@ export namespace Chat {
       openai: OpenAI,
       body: ChatCompletionCreateParams & { stream: true },
       options?: OpenAI.RequestOptions
-    ): APIPromise<Stream<ChatCompletionChunk>>;
+    ): APIPromise<Stream<ChatCompletionChunk | Error>>;
     export function create(
       openai: OpenAI,
       body: ChatCompletionCreateParams & { stream?: false },
@@ -18,7 +18,7 @@ export namespace Chat {
       openai: OpenAI,
       body: Query.ChatCompletionCreateParams & { stream: true },
       options?: OpenAI.RequestOptions
-    ): APIPromise<Stream<Query.ChatCompletionChunk>>;
+    ): APIPromise<Stream<Query.ChatCompletionChunk | Error>>;
     export function create(
       openai: OpenAI,
       body: Query.ChatCompletionCreateParams & { stream?: false },
@@ -28,7 +28,7 @@ export namespace Chat {
       openai: OpenAI,
       body: QueryTool.ChatCompletionCreateParams & { stream: true },
       options?: OpenAI.RequestOptions
-    ): APIPromise<Stream<QueryTool.ChatCompletionChunk>>;
+    ): APIPromise<Stream<QueryTool.ChatCompletionChunk | Error>>;
     export function create(
       openai: OpenAI,
       body: QueryTool.ChatCompletionCreateParams & { stream?: false },
@@ -43,19 +43,19 @@ export namespace Chat {
       options?: OpenAI.RequestOptions
     ): APIPromise<
       | ChatCompletion
-      | Stream<ChatCompletionChunk>
+      | Stream<ChatCompletionChunk | Error>
       | Query.ChatCompletion
-      | Stream<Query.ChatCompletionChunk>
+      | Stream<Query.ChatCompletionChunk | Error>
       | QueryTool.ChatCompletion
-      | Stream<QueryTool.ChatCompletionChunk>
+      | Stream<QueryTool.ChatCompletionChunk | Error>
     > {
       return openai.chat.completions.create(body, options) as APIPromise<
         | ChatCompletion
-        | Stream<ChatCompletionChunk>
+        | Stream<ChatCompletionChunk | Error>
         | Query.ChatCompletion
-        | Stream<Query.ChatCompletionChunk>
+        | Stream<Query.ChatCompletionChunk | Error>
         | QueryTool.ChatCompletion
-        | Stream<QueryTool.ChatCompletionChunk>
+        | Stream<QueryTool.ChatCompletionChunk | Error>
       >;
     }
 
