@@ -36,6 +36,30 @@ export namespace Chat {
     ): APIPromise<QueryTool.ChatCompletion>;
     export function create(
       openai: OpenAI,
+      body: (
+        | ChatCompletionCreateParams
+        | Query.ChatCompletionCreateParams
+        | QueryTool.ChatCompletionCreateParams
+      ) & { stream: true },
+      options?: OpenAI.RequestOptions
+    ): APIPromise<
+      | Stream<ChatCompletionChunk | Error>
+      | Stream<Query.ChatCompletionChunk | Error>
+      | Stream<QueryTool.ChatCompletionChunk | Error>
+    >;
+    export function create(
+      openai: OpenAI,
+      body: (
+        | ChatCompletionCreateParams
+        | Query.ChatCompletionCreateParams
+        | QueryTool.ChatCompletionCreateParams
+      ) & { stream?: false },
+      options?: OpenAI.RequestOptions
+    ): APIPromise<
+      ChatCompletion | Query.ChatCompletion | QueryTool.ChatCompletion
+    >;
+    export function create(
+      openai: OpenAI,
       body:
         | ChatCompletionCreateParams
         | Query.ChatCompletionCreateParams
