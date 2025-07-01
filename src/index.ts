@@ -601,6 +601,14 @@ export namespace Chat {
       export type ChatCompletionCreateParams =
         Chat.Completions.ChatCompletionCreateParams & {
           /**
+           * Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI offers a
+           * wide range of models with different capabilities, performance characteristics,
+           * and price points. Refer to the
+           * [model guide](https://platform.openai.com/docs/models) to browse and compare
+           * available models.
+           */
+          model: (string & {}) | OpenAI.ChatModel | SetQueryModel;
+          /**
            * If provided, embeddings will be generated for each response choice.
            */
           embeddings?: Embeddings.Model;
@@ -634,15 +642,71 @@ export namespace Chat {
         }
       }
 
-      export interface Model {
+      export interface SetQueryModel {
+        /**
+         * The list of models used in the query model.
+         */
+        models: SetModel[];
+        /**
+         * The weight variant used for the query model.
+         */
+        weight: QueryModel.Weight;
+        /**
+         * List of users authorized to use the query model, besides the creator.
+         * Never present for global query models.
+         */
+        users?: string[];
+      }
+
+      export interface QueryModel extends SetQueryModel {
+        /**
+         * The list of models used in the query model.
+         */
+        models: Model[];
+        /**
+         * The name of the query model.
+         */
+        name: string;
+        /**
+         * The creation timestamp of the query model.
+         * Number of seconds since the Unix epoch.
+         */
+        created: number;
+        /**
+         * The version of the query model.
+         * Always a whole number.
+         */
+        version: number;
+        /**
+         * The ID of the user who created the query model.
+         * If not provided, this is a global query model.
+         */
+        created_by?: string;
+      }
+
+      export namespace QueryModel {
+        export type Weight =
+          | {
+              type: "static";
+            }
+          | {
+              type: "training_table";
+              /**
+               * The embeddings model which generates embeddings of the prompt.
+               */
+              embeddings_model: Embeddings.Model;
+              /**
+               * The number of historical records to retrieve for computing per-model weights.
+               */
+              top: number;
+            };
+      }
+
+      export interface SetModel {
         /**
          * The id for the model.
          */
         id: string;
-        /**
-         * The index of the model, within the parent Query Model.
-         */
-        index: number;
         /**
          * The mode of the model.
          */
@@ -693,6 +757,13 @@ export namespace Chat {
          * OpenRouter reasoning configuration (e.g. for Gemini or Anthropic models).
          */
         reasoning?: ChatCompletionCreateParams.Reasoning;
+      }
+
+      export interface Model extends SetModel {
+        /**
+         * The index of the model, within the parent Query Model.
+         */
+        index: number;
       }
 
       export namespace Model {
