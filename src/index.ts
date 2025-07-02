@@ -39,6 +39,36 @@ export namespace Chat {
       openai: OpenAI,
       body:
         | ChatCompletionCreateParamsStreaming
+        | Query.ChatCompletionCreateParamsStreaming,
+      options?: OpenAI.RequestOptions
+    ): APIPromise<
+      | Stream<ChatCompletionChunk | Error>
+      | Stream<Query.ChatCompletionChunk | Error>
+    >;
+    export function create(
+      openai: OpenAI,
+      body:
+        | ChatCompletionCreateParamsStreaming
+        | QueryTool.ChatCompletionCreateParamsStreaming,
+      options?: OpenAI.RequestOptions
+    ): APIPromise<
+      | Stream<ChatCompletionChunk | Error>
+      | Stream<QueryTool.ChatCompletionChunk | Error>
+    >;
+    export function create(
+      openai: OpenAI,
+      body:
+        | Query.ChatCompletionCreateParamsStreaming
+        | QueryTool.ChatCompletionCreateParamsStreaming,
+      options?: OpenAI.RequestOptions
+    ): APIPromise<
+      | Stream<Query.ChatCompletionChunk | Error>
+      | Stream<QueryTool.ChatCompletionChunk | Error>
+    >;
+    export function create(
+      openai: OpenAI,
+      body:
+        | ChatCompletionCreateParamsStreaming
         | Query.ChatCompletionCreateParamsStreaming
         | QueryTool.ChatCompletionCreateParamsStreaming,
       options?: OpenAI.RequestOptions
@@ -47,6 +77,29 @@ export namespace Chat {
       | Stream<Query.ChatCompletionChunk | Error>
       | Stream<QueryTool.ChatCompletionChunk | Error>
     >;
+    export function create(
+      openai: OpenAI,
+      body:
+        | ChatCompletionCreateParamsNonStreaming
+        | Query.ChatCompletionCreateParamsNonStreaming,
+      options?: OpenAI.RequestOptions
+    ): APIPromise<ChatCompletion | Query.ChatCompletion>;
+    export function create(
+      openai: OpenAI,
+      body:
+        | ChatCompletionCreateParamsNonStreaming
+        | QueryTool.ChatCompletionCreateParamsNonStreaming,
+      options?: OpenAI.RequestOptions
+    ): APIPromise<
+      ChatCompletion | Query.ChatCompletion | QueryTool.ChatCompletion
+    >;
+    export function create(
+      openai: OpenAI,
+      body:
+        | Query.ChatCompletionCreateParamsNonStreaming
+        | QueryTool.ChatCompletionCreateParamsNonStreaming,
+      options?: OpenAI.RequestOptions
+    ): APIPromise<Query.ChatCompletion | QueryTool.ChatCompletion>;
     export function create(
       openai: OpenAI,
       body:
