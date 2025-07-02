@@ -73,7 +73,10 @@ export namespace Chat {
       | QueryTool.ChatCompletion
       | Stream<QueryTool.ChatCompletionChunk | Error>
     > {
-      return openai.chat.completions.create(body, options) as APIPromise<
+      return openai.chat.completions.create(
+        body as Omit<typeof body, "model"> & { model: string },
+        options
+      ) as APIPromise<
         | ChatCompletion
         | Stream<ChatCompletionChunk | Error>
         | Query.ChatCompletion
@@ -83,25 +86,35 @@ export namespace Chat {
       >;
     }
 
-    export type ChatCompletionCreateParams =
-      OpenAI.Chat.Completions.ChatCompletionCreateParams & {
-        /**
-         * OpenRouter provider preferences.
-         */
-        provider?: ChatCompletionCreateParams.ProviderPreferences;
-        /**
-         * OpenRouter plugins.
-         */
-        plugins?: ChatCompletionCreateParams.Plugin[];
-        /**
-         * OpenRouter reasoning configuration (e.g. for Gemini or Anthropic models).
-         */
-        reasoning?: ChatCompletionCreateParams.Reasoning;
-        /**
-         * OpenRouter usage accounting configuration.
-         */
-        usage?: ChatCompletionCreateParams.Usage;
-      };
+    export type ChatCompletionCreateParams = Omit<
+      OpenAI.Chat.Completions.ChatCompletionCreateParams,
+      "model"
+    > & {
+      /**
+       * Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI offers a
+       * wide range of models with different capabilities, performance characteristics,
+       * and price points. Refer to the
+       * [model guide](https://platform.openai.com/docs/models) to browse and compare
+       * available models.
+       */
+      model: string;
+      /**
+       * OpenRouter provider preferences.
+       */
+      provider?: ChatCompletionCreateParams.ProviderPreferences;
+      /**
+       * OpenRouter plugins.
+       */
+      plugins?: ChatCompletionCreateParams.Plugin[];
+      /**
+       * OpenRouter reasoning configuration (e.g. for Gemini or Anthropic models).
+       */
+      reasoning?: ChatCompletionCreateParams.Reasoning;
+      /**
+       * OpenRouter usage accounting configuration.
+       */
+      usage?: ChatCompletionCreateParams.Usage;
+    };
 
     export namespace ChatCompletionCreateParams {
       /**
@@ -598,25 +611,27 @@ export namespace Chat {
     }
 
     export namespace Query {
-      export type ChatCompletionCreateParams =
-        Chat.Completions.ChatCompletionCreateParams & {
-          /**
-           * Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI offers a
-           * wide range of models with different capabilities, performance characteristics,
-           * and price points. Refer to the
-           * [model guide](https://platform.openai.com/docs/models) to browse and compare
-           * available models.
-           */
-          model: (string & {}) | OpenAI.ChatModel | SetQueryModel;
-          /**
-           * If provided, embeddings will be generated for each response choice.
-           */
-          embeddings?: Embeddings.Model;
-          /**
-           * If provided, will override the default weight for models with a corresponding index.
-           */
-          weights?: (number | null)[];
-        };
+      export type ChatCompletionCreateParams = Omit<
+        Chat.Completions.ChatCompletionCreateParams,
+        "model"
+      > & {
+        /**
+         * Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI offers a
+         * wide range of models with different capabilities, performance characteristics,
+         * and price points. Refer to the
+         * [model guide](https://platform.openai.com/docs/models) to browse and compare
+         * available models.
+         */
+        model: string | SetQueryModel;
+        /**
+         * If provided, embeddings will be generated for each response choice.
+         */
+        embeddings?: Embeddings.Model;
+        /**
+         * If provided, will override the default weight for models with a corresponding index.
+         */
+        weights?: (number | null)[];
+      };
 
       export interface TrainingTableData {
         /**
