@@ -1,46 +1,46 @@
 import OpenAI from "openai";
 import { APIPromise } from "openai/core";
 import { Stream } from "openai/streaming";
+import OpenAIChatCompletions from "openai/resources/chat/completions";
 
 export namespace Chat {
   export namespace Completions {
     export function create(
       openai: OpenAI,
-      body: ChatCompletionCreateParams & { stream: true },
+      body: ChatCompletionCreateParamsStreaming,
       options?: OpenAI.RequestOptions
     ): APIPromise<Stream<ChatCompletionChunk | Error>>;
     export function create(
       openai: OpenAI,
-      body: ChatCompletionCreateParams & { stream?: false },
+      body: ChatCompletionCreateParamsNonStreaming,
       options?: OpenAI.RequestOptions
     ): APIPromise<ChatCompletion>;
     export function create(
       openai: OpenAI,
-      body: Query.ChatCompletionCreateParams & { stream: true },
+      body: Query.ChatCompletionCreateParamsStreaming,
       options?: OpenAI.RequestOptions
     ): APIPromise<Stream<Query.ChatCompletionChunk | Error>>;
     export function create(
       openai: OpenAI,
-      body: Query.ChatCompletionCreateParams & { stream?: false },
+      body: Query.ChatCompletionCreateParamsNonStreaming,
       options?: OpenAI.RequestOptions
     ): APIPromise<Query.ChatCompletion>;
     export function create(
       openai: OpenAI,
-      body: QueryTool.ChatCompletionCreateParams & { stream: true },
+      body: QueryTool.ChatCompletionCreateParamsStreaming,
       options?: OpenAI.RequestOptions
     ): APIPromise<Stream<QueryTool.ChatCompletionChunk | Error>>;
     export function create(
       openai: OpenAI,
-      body: QueryTool.ChatCompletionCreateParams & { stream?: false },
+      body: QueryTool.ChatCompletionCreateParamsNonStreaming,
       options?: OpenAI.RequestOptions
     ): APIPromise<QueryTool.ChatCompletion>;
     export function create(
       openai: OpenAI,
-      body: (
-        | ChatCompletionCreateParams
-        | Query.ChatCompletionCreateParams
-        | QueryTool.ChatCompletionCreateParams
-      ) & { stream: true },
+      body:
+        | ChatCompletionCreateParamsStreaming
+        | Query.ChatCompletionCreateParamsStreaming
+        | QueryTool.ChatCompletionCreateParamsStreaming,
       options?: OpenAI.RequestOptions
     ): APIPromise<
       | Stream<ChatCompletionChunk | Error>
@@ -49,11 +49,10 @@ export namespace Chat {
     >;
     export function create(
       openai: OpenAI,
-      body: (
-        | ChatCompletionCreateParams
-        | Query.ChatCompletionCreateParams
-        | QueryTool.ChatCompletionCreateParams
-      ) & { stream?: false },
+      body:
+        | ChatCompletionCreateParamsNonStreaming
+        | Query.ChatCompletionCreateParamsNonStreaming
+        | QueryTool.ChatCompletionCreateParamsNonStreaming,
       options?: OpenAI.RequestOptions
     ): APIPromise<
       ChatCompletion | Query.ChatCompletion | QueryTool.ChatCompletion
@@ -74,7 +73,10 @@ export namespace Chat {
       | Stream<QueryTool.ChatCompletionChunk | Error>
     > {
       return openai.chat.completions.create(
-        body as Omit<typeof body, "model"> & { model: string },
+        body as Omit<typeof body, "model" | "response_format"> & {
+          model: string;
+          response_format?: OpenAI.ChatCompletionCreateParams["response_format"];
+        },
         options
       ) as APIPromise<
         | ChatCompletion
@@ -86,10 +88,8 @@ export namespace Chat {
       >;
     }
 
-    export type ChatCompletionCreateParams = Omit<
-      OpenAI.Chat.Completions.ChatCompletionCreateParams,
-      "model"
-    > & {
+    export interface ChatCompletionCreateParamsBase
+      extends OpenAIChatCompletions.ChatCompletionCreateParamsBase {
       /**
        * Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI offers a
        * wide range of models with different capabilities, performance characteristics,
@@ -114,7 +114,41 @@ export namespace Chat {
        * OpenRouter usage accounting configuration.
        */
       usage?: ChatCompletionCreateParams.Usage;
-    };
+    }
+
+    export interface ChatCompletionCreateParamsStreaming
+      extends ChatCompletionCreateParamsBase {
+      /**
+       * If set to true, the model response data will be streamed to the client as it is
+       * generated using
+       * [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format).
+       * See the
+       * [Streaming section below](https://platform.openai.com/docs/api-reference/chat/streaming)
+       * for more information, along with the
+       * [streaming responses](https://platform.openai.com/docs/guides/streaming-responses)
+       * guide for more information on how to handle the streaming events.
+       */
+      stream: true;
+    }
+
+    export interface ChatCompletionCreateParamsNonStreaming
+      extends ChatCompletionCreateParamsBase {
+      /**
+       * If set to true, the model response data will be streamed to the client as it is
+       * generated using
+       * [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format).
+       * See the
+       * [Streaming section below](https://platform.openai.com/docs/api-reference/chat/streaming)
+       * for more information, along with the
+       * [streaming responses](https://platform.openai.com/docs/guides/streaming-responses)
+       * guide for more information on how to handle the streaming events.
+       */
+      stream: false;
+    }
+
+    export type ChatCompletionCreateParams =
+      | ChatCompletionCreateParamsStreaming
+      | ChatCompletionCreateParamsNonStreaming;
 
     export namespace ChatCompletionCreateParams {
       /**
@@ -611,10 +645,8 @@ export namespace Chat {
     }
 
     export namespace Query {
-      export type ChatCompletionCreateParams = Omit<
-        Chat.Completions.ChatCompletionCreateParams,
-        "model"
-      > & {
+      export interface ChatCompletionCreateParamsBase
+        extends Omit<Chat.Completions.ChatCompletionCreateParamsBase, "model"> {
         /**
          * Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI offers a
          * wide range of models with different capabilities, performance characteristics,
@@ -622,7 +654,7 @@ export namespace Chat {
          * [model guide](https://platform.openai.com/docs/models) to browse and compare
          * available models.
          */
-        model: string | SetQueryModel;
+        model: `objectiveai/${string}` | SetQueryModel;
         /**
          * If provided, embeddings will be generated for each response choice.
          */
@@ -631,7 +663,41 @@ export namespace Chat {
          * If provided, will override the default weight for models with a corresponding index.
          */
         weights?: (number | null)[];
-      };
+      }
+
+      export interface ChatCompletionCreateParamsStreaming
+        extends ChatCompletionCreateParamsBase {
+        /**
+         * If set to true, the model response data will be streamed to the client as it is
+         * generated using
+         * [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format).
+         * See the
+         * [Streaming section below](https://platform.openai.com/docs/api-reference/chat/streaming)
+         * for more information, along with the
+         * [streaming responses](https://platform.openai.com/docs/guides/streaming-responses)
+         * guide for more information on how to handle the streaming events.
+         */
+        stream: true;
+      }
+
+      export interface ChatCompletionCreateParamsNonStreaming
+        extends ChatCompletionCreateParamsBase {
+        /**
+         * If set to true, the model response data will be streamed to the client as it is
+         * generated using
+         * [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format).
+         * See the
+         * [Streaming section below](https://platform.openai.com/docs/api-reference/chat/streaming)
+         * for more information, along with the
+         * [streaming responses](https://platform.openai.com/docs/guides/streaming-responses)
+         * guide for more information on how to handle the streaming events.
+         */
+        stream: false;
+      }
+
+      export type ChatCompletionCreateParams =
+        | ChatCompletionCreateParamsStreaming
+        | ChatCompletionCreateParamsNonStreaming;
 
       export interface TrainingTableData {
         /**
@@ -1179,15 +1245,62 @@ export namespace Chat {
     }
 
     export namespace QueryTool {
+      export interface ChatCompletionCreateParamsBase
+        extends Omit<Query.ChatCompletionCreateParamsBase, "response_format"> {
+        /**
+         * An object specifying the format that the model must output.
+         *
+         * Setting to `{ "type": "json_schema", "json_schema": {...} }` enables Structured
+         * Outputs which ensures the model will match your supplied JSON schema. Learn more
+         * in the
+         * [Structured Outputs guide](https://platform.openai.com/docs/guides/structured-outputs).
+         *
+         * Setting to `{ "type": "json_object" }` enables the older JSON mode, which
+         * ensures the message the model generates is valid JSON. Using `json_schema` is
+         * preferred for models that support it.
+         */
+        response_format: ResponseFormat;
+        /**
+         * The 'n' parameter to propagate to the upstream Query.
+         * The base 'n' parameter controls the number of Query Tool choices,
+         * whereas 'query_n' controls the number of Query choices per Query Tool choice.
+         */
+        query_n?: number;
+      }
+
+      export interface ChatCompletionCreateParamsStreaming
+        extends ChatCompletionCreateParamsBase {
+        /**
+         * If set to true, the model response data will be streamed to the client as it is
+         * generated using
+         * [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format).
+         * See the
+         * [Streaming section below](https://platform.openai.com/docs/api-reference/chat/streaming)
+         * for more information, along with the
+         * [streaming responses](https://platform.openai.com/docs/guides/streaming-responses)
+         * guide for more information on how to handle the streaming events.
+         */
+        stream: true;
+      }
+
+      export interface ChatCompletionCreateParamsNonStreaming
+        extends ChatCompletionCreateParamsBase {
+        /**
+         * If set to true, the model response data will be streamed to the client as it is
+         * generated using
+         * [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format).
+         * See the
+         * [Streaming section below](https://platform.openai.com/docs/api-reference/chat/streaming)
+         * for more information, along with the
+         * [streaming responses](https://platform.openai.com/docs/guides/streaming-responses)
+         * guide for more information on how to handle the streaming events.
+         */
+        stream: false;
+      }
+
       export type ChatCompletionCreateParams =
-        Query.ChatCompletionCreateParams & {
-          /**
-           * The 'n' parameter to propagate to the upstream Query.
-           * The base 'n' parameter controls the number of Query Tool choices,
-           * whereas 'query_n' controls the number of Query choices per Query Tool choice.
-           */
-          query_n?: number;
-        };
+        | ChatCompletionCreateParamsStreaming
+        | ChatCompletionCreateParamsNonStreaming;
 
       export type ResponseFormat =
         | {
