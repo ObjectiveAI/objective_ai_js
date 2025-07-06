@@ -2023,6 +2023,7 @@ export namespace ObjectiveAI {
 
       export interface Provider {
         name: string;
+        tag: string;
         context_length?: number;
         pricing: Pricing;
         provider_name: string;
