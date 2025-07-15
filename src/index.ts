@@ -2066,7 +2066,7 @@ export namespace ObjectiveAI {
     combine?: (a: T, b: T) => T,
     deepClone?: (t: T) => T
   ): T | null | undefined {
-    if (a && b) {
+    if (a !== null && a !== undefined && b !== null && b !== undefined) {
       return combine ? combine(a, b) : deepClone ? deepClone(a) : a;
     } else if (a !== null && a !== undefined) {
       return deepClone ? deepClone(a) : a;
