@@ -320,28 +320,48 @@ export namespace ObjectiveAI {
         export function merged(
           a: ChatCompletionChunk,
           b: ChatCompletionChunk
-        ): ChatCompletionChunk {
+        ): [ChatCompletionChunk, boolean] {
           const id = a.id;
-          const choices = Choice.mergedList(a.choices, b.choices);
+          const [choices, choicesChanged] = Choice.mergedList(
+            a.choices,
+            b.choices
+          );
           const created = a.created;
           const model = a.model;
           const object = a.object;
-          const service_tier = merge(a.service_tier, b.service_tier);
-          const system_fingerprint = merge(
+          const [service_tier, service_tierChanged] = merge(
+            a.service_tier,
+            b.service_tier
+          );
+          const [system_fingerprint, system_fingerprintChanged] = merge(
             a.system_fingerprint,
             b.system_fingerprint
           );
-          const usage = merge(a.usage, b.usage, Usage.merged, Usage.deepClone);
-          return {
-            id,
-            choices,
-            created,
-            model,
-            object,
-            ...(service_tier !== undefined ? { service_tier } : {}),
-            ...(system_fingerprint !== undefined ? { system_fingerprint } : {}),
-            ...(usage !== undefined ? { usage } : {}),
-          };
+          const [usage, usageChanged] = merge(a.usage, b.usage, Usage.merged);
+          if (
+            choicesChanged ||
+            service_tierChanged ||
+            system_fingerprintChanged ||
+            usageChanged
+          ) {
+            return [
+              {
+                id,
+                choices,
+                created,
+                model,
+                object,
+                ...(service_tier !== undefined ? { service_tier } : {}),
+                ...(system_fingerprint !== undefined
+                  ? { system_fingerprint }
+                  : {}),
+                ...(usage !== undefined ? { usage } : {}),
+              },
+              true,
+            ];
+          } else {
+            return [a, false];
+          }
         }
         export function deepClone({
           id,
@@ -393,27 +413,31 @@ export namespace ObjectiveAI {
         }
 
         export namespace Choice {
-          export function merged(a: Choice, b: Choice): Choice {
-            const delta = merge(
-              a.delta,
-              b.delta,
-              Delta.merged,
-              Delta.deepClone
+          export function merged(a: Choice, b: Choice): [Choice, boolean] {
+            const [delta, deltaChanged] = merge(a.delta, b.delta, Delta.merged);
+            const [finish_reason, finish_reasonChanged] = merge(
+              a.finish_reason,
+              b.finish_reason
             );
-            const finish_reason = merge(a.finish_reason, b.finish_reason);
             const index = a.index;
-            const logprobs = merge(
+            const [logprobs, logprobsChanged] = merge(
               a.logprobs,
               b.logprobs,
-              Chat.Completions.ChatCompletionChunk.Choice.Logprobs.merged,
-              Chat.Completions.ChatCompletionChunk.Choice.Logprobs.deepClone
+              Chat.Completions.ChatCompletionChunk.Choice.Logprobs.merged
             );
-            return {
-              delta,
-              finish_reason,
-              index,
-              ...(logprobs !== undefined ? { logprobs } : {}),
-            };
+            if (deltaChanged || finish_reasonChanged || logprobsChanged) {
+              return [
+                {
+                  delta,
+                  finish_reason,
+                  index,
+                  ...(logprobs !== undefined ? { logprobs } : {}),
+                },
+                true,
+              ];
+            } else {
+              return [a, false];
+            }
           }
           export function deepClone({
             delta,
@@ -430,22 +454,28 @@ export namespace ObjectiveAI {
                 : {}),
             };
           }
-          export function mergedList(a: Choice[], b: Choice[]): Choice[] {
+          export function mergedList(
+            a: Choice[],
+            b: Choice[]
+          ): [Choice[], boolean] {
+            let changed = false;
             const merged: Choice[] = [];
             for (const choice of [...a, ...b]) {
               const existingIndex = merged.findIndex(
                 (c) => c.index === choice.index
               );
               if (existingIndex === -1) {
-                merged.push(Choice.deepClone(choice));
+                merged.push(choice);
               } else {
-                merged[existingIndex] = Choice.merged(
+                let choiceChanged = false;
+                [merged[existingIndex], choiceChanged] = Choice.merged(
                   merged[existingIndex],
                   choice
                 );
+                changed ||= choiceChanged;
               }
             }
-            return merged;
+            return changed ? [merged, true] : [a, false];
           }
           export function deepCloneList(choices: Choice[]): Choice[] {
             return choices.map(Choice.deepClone);
@@ -455,20 +485,25 @@ export namespace ObjectiveAI {
             export function merged(
               a: OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Logprobs,
               b: OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Logprobs
-            ): OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Logprobs {
-              const content = merge(
+            ): [
+              OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Logprobs,
+              boolean
+            ] {
+              const [content, contentChanged] = merge(
                 a.content,
                 b.content,
-                TokenLogprob.mergedList,
-                TokenLogprob.deepCloneList
+                TokenLogprob.mergedList
               );
-              const refusal = merge(
+              const [refusal, refusalChanged] = merge(
                 a.refusal,
                 b.refusal,
-                TokenLogprob.mergedList,
-                TokenLogprob.deepCloneList
+                TokenLogprob.mergedList
               );
-              return { content, refusal };
+              if (contentChanged || refusalChanged) {
+                return [{ content, refusal }, true];
+              } else {
+                return [a, false];
+              }
             }
             export function deepClone({
               content,
@@ -503,8 +538,15 @@ export namespace ObjectiveAI {
               export function mergedList(
                 a: OpenAI.Chat.Completions.ChatCompletionTokenLogprob[],
                 b: OpenAI.Chat.Completions.ChatCompletionTokenLogprob[]
-              ): OpenAI.Chat.Completions.ChatCompletionTokenLogprob[] {
-                return [...a, ...b].map(TokenLogprob.deepClone);
+              ): [
+                OpenAI.Chat.Completions.ChatCompletionTokenLogprob[],
+                boolean
+              ] {
+                if (b.length > 0) {
+                  return [[...a, ...b], true];
+                } else {
+                  return [a, false];
+                }
               }
               export function deepCloneList(
                 logprobs: OpenAI.Chat.Completions.ChatCompletionTokenLogprob[]
@@ -527,24 +569,48 @@ export namespace ObjectiveAI {
           }
 
           export namespace Delta {
-            export function merged(a: Delta, b: Delta): Delta {
-              const content = merge(a.content, b.content, mergedString);
-              const reasoning = merge(a.reasoning, b.reasoning, mergedString);
-              const refusal = merge(a.refusal, b.refusal, mergedString);
-              const role = merge(a.role, b.role);
-              const tool_calls = merge(
+            export function merged(a: Delta, b: Delta): [Delta, boolean] {
+              const [content, contentChanged] = merge(
+                a.content,
+                b.content,
+                mergedString
+              );
+              const [reasoning, reasoningChanged] = merge(
+                a.reasoning,
+                b.reasoning,
+                mergedString
+              );
+              const [refusal, refusalChanged] = merge(
+                a.refusal,
+                b.refusal,
+                mergedString
+              );
+              const [role, roleChanged] = merge(a.role, b.role);
+              const [tool_calls, tool_callsChanged] = merge(
                 a.tool_calls,
                 b.tool_calls,
-                ToolCall.mergedList,
-                ToolCall.deepCloneList
+                ToolCall.mergedList
               );
-              return {
-                ...(content !== undefined ? { content } : {}),
-                ...(reasoning !== undefined ? { reasoning } : {}),
-                ...(refusal !== undefined ? { refusal } : {}),
-                ...(role !== undefined ? { role } : {}),
-                ...(tool_calls !== undefined ? { tool_calls } : {}),
-              };
+              if (
+                contentChanged ||
+                reasoningChanged ||
+                refusalChanged ||
+                roleChanged ||
+                tool_callsChanged
+              ) {
+                return [
+                  {
+                    ...(content !== undefined ? { content } : {}),
+                    ...(reasoning !== undefined ? { reasoning } : {}),
+                    ...(refusal !== undefined ? { refusal } : {}),
+                    ...(role !== undefined ? { role } : {}),
+                    ...(tool_calls !== undefined ? { tool_calls } : {}),
+                  },
+                  true,
+                ];
+              } else {
+                return [a, false];
+              }
             }
             export function deepClone({
               content,
@@ -568,22 +634,33 @@ export namespace ObjectiveAI {
               export function merged(
                 a: OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall,
                 b: OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall
-              ): OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall {
+              ): [
+                OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall,
+                boolean
+              ] {
                 const index = a.index;
-                const id = merge(a.id, b.id);
-                const function_ = merge(
+                const [id, idChanged] = merge(a.id, b.id);
+                const [function_, functionChanged] = merge(
                   a.function,
                   b.function,
-                  Function.merged,
-                  Function.deepClone
+                  Function.merged
                 );
-                const type = merge(a.type, b.type);
-                return {
-                  index,
-                  ...(id !== undefined ? { id } : {}),
-                  ...(function_ !== undefined ? { function: function_ } : {}),
-                  ...(type !== undefined ? { type } : {}),
-                };
+                const [type, typeChanged] = merge(a.type, b.type);
+                if (idChanged || functionChanged || typeChanged) {
+                  return [
+                    {
+                      index,
+                      ...(id !== undefined ? { id } : {}),
+                      ...(function_ !== undefined
+                        ? { function: function_ }
+                        : {}),
+                      ...(type !== undefined ? { type } : {}),
+                    },
+                    true,
+                  ];
+                } else {
+                  return [a, false];
+                }
               }
               export function deepClone({
                 index,
@@ -603,23 +680,29 @@ export namespace ObjectiveAI {
               export function mergedList(
                 a: OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall[],
                 b: OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall[]
-              ): OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall[] {
+              ): [
+                OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall[],
+                boolean
+              ] {
                 const merged: OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall[] =
                   [];
+                let changed = false;
                 for (const toolCall of [...a, ...b]) {
                   const existingIndex = merged.findIndex(
                     (tc) => tc.index === toolCall.index
                   );
                   if (existingIndex === -1) {
-                    merged.push(ToolCall.deepClone(toolCall));
+                    merged.push(toolCall);
                   } else {
-                    merged[existingIndex] = ToolCall.merged(
+                    let toolCallChanged = false;
+                    [merged[existingIndex], toolCallChanged] = ToolCall.merged(
                       merged[existingIndex],
                       toolCall
                     );
+                    changed ||= toolCallChanged;
                   }
                 }
-                return merged;
+                return changed ? [merged, true] : [a, false];
               }
               export function deepCloneList(
                 toolCalls: OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall[]
@@ -631,19 +714,29 @@ export namespace ObjectiveAI {
                 export function merged(
                   a: OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall.Function,
                   b: OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall.Function
-                ): OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall.Function {
-                  const name = merge(a.name, b.name);
-                  const arguments_ = merge(
+                ): [
+                  OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall.Function,
+                  boolean
+                ] {
+                  const [name, nameChanged] = merge(a.name, b.name);
+                  const [arguments_, argumentsChanged] = merge(
                     a.arguments,
                     b.arguments,
                     mergedString
                   );
-                  return {
-                    ...(name !== undefined ? { name } : {}),
-                    ...(arguments_ !== undefined
-                      ? { arguments: arguments_ }
-                      : {}),
-                  };
+                  if (nameChanged || argumentsChanged) {
+                    return [
+                      {
+                        ...(name !== undefined ? { name } : {}),
+                        ...(arguments_ !== undefined
+                          ? { arguments: arguments_ }
+                          : {}),
+                      },
+                      true,
+                    ];
+                  } else {
+                    return [a, false];
+                  }
                 }
                 export function deepClone({
                   name,
@@ -1001,31 +1094,40 @@ export namespace ObjectiveAI {
           export function merged(
             a: ChoiceCompletionMetadata,
             b: ChoiceCompletionMetadata
-          ): ChoiceCompletionMetadata {
+          ): [ChoiceCompletionMetadata, boolean] {
             const id = a.id;
             const created = a.created;
             const model = a.model;
-            const service_tier = merge(a.service_tier, b.service_tier);
-            const system_fingerprint = merge(
+            const [service_tier, service_tierChanged] = merge(
+              a.service_tier,
+              b.service_tier
+            );
+            const [system_fingerprint, system_fingerprintChanged] = merge(
               a.system_fingerprint,
               b.system_fingerprint
             );
-            const usage = merge(
-              a.usage,
-              b.usage,
-              Usage.merged,
-              Usage.deepClone
-            );
-            return {
-              id,
-              created,
-              model,
-              ...(service_tier !== undefined ? { service_tier } : {}),
-              ...(system_fingerprint !== undefined
-                ? { system_fingerprint }
-                : {}),
-              ...(usage !== undefined ? { usage } : {}),
-            };
+            const [usage, usageChanged] = merge(a.usage, b.usage, Usage.merged);
+            if (
+              service_tierChanged ||
+              system_fingerprintChanged ||
+              usageChanged
+            ) {
+              return [
+                {
+                  id,
+                  created,
+                  model,
+                  ...(service_tier !== undefined ? { service_tier } : {}),
+                  ...(system_fingerprint !== undefined
+                    ? { system_fingerprint }
+                    : {}),
+                  ...(usage !== undefined ? { usage } : {}),
+                },
+                true,
+              ];
+            } else {
+              return [a, false];
+            }
           }
           export function deepClone({
             id,
@@ -1071,44 +1173,56 @@ export namespace ObjectiveAI {
           export function merged(
             a: ChatCompletionChunk,
             b: ChatCompletionChunk
-          ): ChatCompletionChunk {
+          ): [ChatCompletionChunk, boolean] {
             const id = a.id;
-            const choices = Choice.mergedList(a.choices, b.choices);
+            const [choices, choicesChanged] = Choice.mergedList(
+              a.choices,
+              b.choices
+            );
             const created = a.created;
             const model = a.model;
             const object = a.object;
-            const service_tier = merge(a.service_tier, b.service_tier);
-            const system_fingerprint = merge(
+            const [service_tier, service_tierChanged] = merge(
+              a.service_tier,
+              b.service_tier
+            );
+            const [system_fingerprint, system_fingerprintChanged] = merge(
               a.system_fingerprint,
               b.system_fingerprint
             );
-            const usage = merge(
-              a.usage,
-              b.usage,
-              Usage.merged,
-              Usage.deepClone
-            );
-            const training_table_data = merge(
+            const [usage, usageChanged] = merge(a.usage, b.usage, Usage.merged);
+            const [training_table_data, training_table_dataChanged] = merge(
               a.training_table_data,
-              b.training_table_data,
-              undefined,
-              TrainingTableData.deepClone
+              b.training_table_data
             );
-            return {
-              id,
-              choices,
-              created,
-              model,
-              object,
-              ...(service_tier !== undefined ? { service_tier } : {}),
-              ...(system_fingerprint !== undefined
-                ? { system_fingerprint }
-                : {}),
-              ...(usage !== undefined ? { usage } : {}),
-              ...(training_table_data !== undefined
-                ? { training_table_data }
-                : {}),
-            };
+            if (
+              choicesChanged ||
+              service_tierChanged ||
+              system_fingerprintChanged ||
+              usageChanged ||
+              training_table_dataChanged
+            ) {
+              return [
+                {
+                  id,
+                  choices,
+                  created,
+                  model,
+                  object,
+                  ...(service_tier !== undefined ? { service_tier } : {}),
+                  ...(system_fingerprint !== undefined
+                    ? { system_fingerprint }
+                    : {}),
+                  ...(usage !== undefined ? { usage } : {}),
+                  ...(training_table_data !== undefined
+                    ? { training_table_data }
+                    : {}),
+                },
+                true,
+              ];
+            } else {
+              return [a, false];
+            }
           }
           export function deepClone({
             id,
@@ -1179,52 +1293,68 @@ export namespace ObjectiveAI {
           }
 
           export namespace Choice {
-            export function merged(a: Choice, b: Choice): Choice {
-              const delta = merge(
+            export function merged(a: Choice, b: Choice): [Choice, boolean] {
+              const [delta, deltaChanged] = merge(
                 a.delta,
                 b.delta,
-                Chat.Completions.ChatCompletionChunk.Choice.Delta.merged,
-                Chat.Completions.ChatCompletionChunk.Choice.Delta.deepClone
+                Chat.Completions.ChatCompletionChunk.Choice.Delta.merged
               );
-              const finish_reason = merge(a.finish_reason, b.finish_reason);
+              const [finish_reason, finish_reasonChanged] = merge(
+                a.finish_reason,
+                b.finish_reason
+              );
               const index = a.index;
-              const logprobs = merge(
+              const [logprobs, logprobsChanged] = merge(
                 a.logprobs,
                 b.logprobs,
-                Chat.Completions.ChatCompletionChunk.Choice.Logprobs.merged,
-                Chat.Completions.ChatCompletionChunk.Choice.Logprobs.deepClone
+                Chat.Completions.ChatCompletionChunk.Choice.Logprobs.merged
               );
-              const id = merge(a.id, b.id);
-              const weight = merge(a.weight, b.weight);
-              const confidence = merge(a.confidence, b.confidence);
-              const embedding = merge(
+              const [id, idChanged] = merge(a.id, b.id);
+              const [weight, weightChanged] = merge(a.weight, b.weight);
+              const [confidence, confidenceChanged] = merge(
+                a.confidence,
+                b.confidence
+              );
+              const [embedding, embeddingChanged] = merge(
                 a.embedding,
-                b.embedding,
-                undefined,
-                (t) =>
-                  "data" in t
-                    ? Embeddings.CreateEmbeddingResponse.deepClone(t)
-                    : Error.deepClone(t)
+                b.embedding
               );
-              const error = merge(a.error, b.error, undefined, Error.deepClone);
+              const [error, errorChanged] = merge(a.error, b.error);
               const model = a.model;
-              const completion_metadata = ChoiceCompletionMetadata.merged(
+              const [completion_metadata, completion_metadataChanged] = merge(
                 a.completion_metadata,
                 b.completion_metadata
               );
-              return {
-                delta,
-                finish_reason,
-                index,
-                ...(logprobs !== undefined ? { logprobs } : {}),
-                ...(id !== undefined ? { id } : {}),
-                ...(weight !== undefined ? { weight } : {}),
-                ...(confidence !== undefined ? { confidence } : {}),
-                ...(embedding !== undefined ? { embedding } : {}),
-                ...(error !== undefined ? { error } : {}),
-                model,
-                completion_metadata,
-              };
+              if (
+                deltaChanged ||
+                finish_reasonChanged ||
+                logprobsChanged ||
+                idChanged ||
+                weightChanged ||
+                confidenceChanged ||
+                embeddingChanged ||
+                errorChanged ||
+                completion_metadataChanged
+              ) {
+                return [
+                  {
+                    delta,
+                    finish_reason,
+                    index,
+                    ...(logprobs !== undefined ? { logprobs } : {}),
+                    ...(id !== undefined ? { id } : {}),
+                    ...(weight !== undefined ? { weight } : {}),
+                    ...(confidence !== undefined ? { confidence } : {}),
+                    ...(embedding !== undefined ? { embedding } : {}),
+                    ...(error !== undefined ? { error } : {}),
+                    model,
+                    completion_metadata,
+                  },
+                  true,
+                ];
+              } else {
+                return [a, false];
+              }
             }
             export function deepClone({
               delta,
@@ -1274,22 +1404,28 @@ export namespace ObjectiveAI {
                   ChoiceCompletionMetadata.deepClone(completion_metadata),
               };
             }
-            export function mergedList(a: Choice[], b: Choice[]): Choice[] {
+            export function mergedList(
+              a: Choice[],
+              b: Choice[]
+            ): [Choice[], boolean] {
               const merged: Choice[] = [];
+              let changed = false;
               for (const choice of [...a, ...b]) {
                 const existingIndex = merged.findIndex(
                   (c) => c.index === choice.index
                 );
                 if (existingIndex === -1) {
-                  merged.push(Choice.deepClone(choice));
+                  merged.push(choice);
                 } else {
-                  merged[existingIndex] = Choice.merged(
+                  let choiceChanged = false;
+                  [merged[existingIndex], choiceChanged] = Choice.merged(
                     merged[existingIndex],
                     choice
                   );
+                  changed ||= choiceChanged;
                 }
               }
-              return merged;
+              return changed ? [merged, true] : [a, false];
             }
             export function deepCloneList(choices: Choice[]): Choice[] {
               return choices.map(Choice.deepClone);
@@ -1451,35 +1587,48 @@ export namespace ObjectiveAI {
           export function merged(
             a: ChatCompletionChunk,
             b: ChatCompletionChunk
-          ): ChatCompletionChunk {
+          ): [ChatCompletionChunk, boolean] {
             const id = a.id;
-            const choices = Choice.mergedList(a.choices, b.choices);
+            const [choices, choicesChanged] = Choice.mergedList(
+              a.choices,
+              b.choices
+            );
             const created = a.created;
             const model = a.model;
             const object = a.object;
-            const service_tier = merge(a.service_tier, b.service_tier);
-            const system_fingerprint = merge(
+            const [service_tier, service_tierChanged] = merge(
+              a.service_tier,
+              b.service_tier
+            );
+            const [system_fingerprint, system_fingerprintChanged] = merge(
               a.system_fingerprint,
               b.system_fingerprint
             );
-            const usage = merge(
-              a.usage,
-              b.usage,
-              Usage.merged,
-              Usage.deepClone
-            );
-            return {
-              id,
-              choices,
-              created,
-              model,
-              object,
-              ...(service_tier !== undefined ? { service_tier } : {}),
-              ...(system_fingerprint !== undefined
-                ? { system_fingerprint }
-                : {}),
-              ...(usage !== undefined ? { usage } : {}),
-            };
+            const [usage, usageChanged] = merge(a.usage, b.usage, Usage.merged);
+            if (
+              choicesChanged ||
+              service_tierChanged ||
+              system_fingerprintChanged ||
+              usageChanged
+            ) {
+              return [
+                {
+                  id,
+                  choices,
+                  created,
+                  model,
+                  object,
+                  ...(service_tier !== undefined ? { service_tier } : {}),
+                  ...(system_fingerprint !== undefined
+                    ? { system_fingerprint }
+                    : {}),
+                  ...(usage !== undefined ? { usage } : {}),
+                },
+                true,
+              ];
+            } else {
+              return [a, false];
+            }
           }
           export function deepClone({
             id,
@@ -1514,27 +1663,35 @@ export namespace ObjectiveAI {
           }
 
           export namespace Choice {
-            export function merged(a: Choice, b: Choice): Choice {
-              const delta = merge(
+            export function merged(a: Choice, b: Choice): [Choice, boolean] {
+              const [delta, deltaChanged] = merge(
                 a.delta,
                 b.delta,
-                Delta.merged,
-                Delta.deepClone
+                Delta.merged
               );
-              const finish_reason = merge(a.finish_reason, b.finish_reason);
+              const [finish_reason, finish_reasonChanged] = merge(
+                a.finish_reason,
+                b.finish_reason
+              );
               const index = a.index;
-              const logprobs = merge(
+              const [logprobs, logprobsChanged] = merge(
                 a.logprobs,
                 b.logprobs,
-                Chat.Completions.ChatCompletionChunk.Choice.Logprobs.merged,
-                Chat.Completions.ChatCompletionChunk.Choice.Logprobs.deepClone
+                Chat.Completions.ChatCompletionChunk.Choice.Logprobs.merged
               );
-              return {
-                delta,
-                finish_reason,
-                index,
-                ...(logprobs !== undefined ? { logprobs } : {}),
-              };
+              if (deltaChanged || finish_reasonChanged || logprobsChanged) {
+                return [
+                  {
+                    delta,
+                    finish_reason,
+                    index,
+                    ...(logprobs !== undefined ? { logprobs } : {}),
+                  },
+                  true,
+                ];
+              } else {
+                return [a, false];
+              }
             }
             export function deepClone({
               delta,
@@ -1557,22 +1714,28 @@ export namespace ObjectiveAI {
                   : {}),
               };
             }
-            export function mergedList(a: Choice[], b: Choice[]): Choice[] {
+            export function mergedList(
+              a: Choice[],
+              b: Choice[]
+            ): [Choice[], boolean] {
               const merged: Choice[] = [];
+              let changed = false;
               for (const choice of [...a, ...b]) {
                 const existingIndex = merged.findIndex(
                   (c) => c.index === choice.index
                 );
                 if (existingIndex === -1) {
-                  merged.push(Choice.deepClone(choice));
+                  merged.push(choice);
                 } else {
-                  merged[existingIndex] = Choice.merged(
+                  let choiceChanged = false;
+                  [merged[existingIndex], choiceChanged] = Choice.merged(
                     merged[existingIndex],
                     choice
                   );
+                  changed ||= choiceChanged;
                 }
               }
-              return merged;
+              return changed ? [merged, true] : [a, false];
             }
             export function deepCloneList(choices: Choice[]): Choice[] {
               return choices.map(Choice.deepClone);
@@ -1591,31 +1754,49 @@ export namespace ObjectiveAI {
             }
 
             export namespace Delta {
-              export function merged(a: Delta, b: Delta): Delta {
-                const content = merge(a.content, b.content, mergedString);
-                const reasoning = merge(
+              export function merged(a: Delta, b: Delta): [Delta, boolean] {
+                const [content, contentChanged] = merge(
+                  a.content,
+                  b.content,
+                  mergedString
+                );
+                const [reasoning, reasoningChanged] = merge(
                   a.reasoning,
                   b.reasoning,
-                  Query.ChatCompletionChunk.merged,
-                  Query.ChatCompletionChunk.deepClone
+                  Query.ChatCompletionChunk.merged
                 );
-                const refusal = merge(a.refusal, b.refusal, mergedString);
-                const role = merge(a.role, b.role);
-                const tool_calls = merge(
+                const [refusal, refusalChanged] = merge(
+                  a.refusal,
+                  b.refusal,
+                  mergedString
+                );
+                const [role, roleChanged] = merge(a.role, b.role);
+                const [tool_calls, tool_callsChanged] = merge(
                   a.tool_calls,
                   b.tool_calls,
                   Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall
-                    .mergedList,
-                  Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall
-                    .deepCloneList
+                    .mergedList
                 );
-                return {
-                  ...(content !== undefined ? { content } : {}),
-                  ...(reasoning !== undefined ? { reasoning } : {}),
-                  ...(refusal !== undefined ? { refusal } : {}),
-                  ...(role !== undefined ? { role } : {}),
-                  ...(tool_calls !== undefined ? { tool_calls } : {}),
-                };
+                if (
+                  contentChanged ||
+                  reasoningChanged ||
+                  refusalChanged ||
+                  roleChanged ||
+                  tool_callsChanged
+                ) {
+                  return [
+                    {
+                      ...(content !== undefined ? { content } : {}),
+                      ...(reasoning !== undefined ? { reasoning } : {}),
+                      ...(refusal !== undefined ? { refusal } : {}),
+                      ...(role !== undefined ? { role } : {}),
+                      ...(tool_calls !== undefined ? { tool_calls } : {}),
+                    },
+                    true,
+                  ];
+                } else {
+                  return [a, false];
+                }
               }
               export function deepClone({
                 content,
@@ -1735,42 +1916,52 @@ export namespace ObjectiveAI {
   }
 
   export namespace Usage {
-    export function merged(a: Usage, b: Usage): Usage {
+    export function merged(a: Usage, b: Usage): [Usage, boolean] {
       const completion_tokens = a.completion_tokens + b.completion_tokens;
       const prompt_tokens = a.prompt_tokens + b.prompt_tokens;
       const total_tokens = a.total_tokens + b.total_tokens;
-      const completion_tokens_details = merge(
-        a.completion_tokens_details,
-        b.completion_tokens_details,
-        CompletionTokensDetails.merged,
-        CompletionTokensDetails.deepClone
-      );
-      const prompt_tokens_details = merge(
+      const [completion_tokens_details, completion_tokens_detailsChanged] =
+        merge(
+          a.completion_tokens_details,
+          b.completion_tokens_details,
+          CompletionTokensDetails.merged
+        );
+      const [prompt_tokens_details, prompt_tokens_detailsChanged] = merge(
         a.prompt_tokens_details,
         b.prompt_tokens_details,
-        PromptTokensDetails.merged,
-        PromptTokensDetails.deepClone
+        PromptTokensDetails.merged
       );
-      const cost = merge(a.cost, b.cost, mergedNumber);
-      const cost_details = merge(
+      const [cost, costChanged] = merge(a.cost, b.cost, mergedNumber);
+      const [cost_details, cost_detailsChanged] = merge(
         a.cost_details,
         b.cost_details,
-        CostDetails.merged,
-        CostDetails.deepClone
+        CostDetails.merged
       );
-      return {
-        completion_tokens,
-        prompt_tokens,
-        total_tokens,
-        ...(completion_tokens_details !== undefined
-          ? { completion_tokens_details }
-          : {}),
-        ...(prompt_tokens_details !== undefined
-          ? { prompt_tokens_details }
-          : {}),
-        ...(cost !== undefined ? { cost } : {}),
-        ...(cost_details !== undefined ? { cost_details } : {}),
-      };
+      if (
+        completion_tokens_detailsChanged ||
+        prompt_tokens_detailsChanged ||
+        costChanged ||
+        cost_detailsChanged
+      ) {
+        return [
+          {
+            completion_tokens,
+            prompt_tokens,
+            total_tokens,
+            ...(completion_tokens_details !== undefined
+              ? { completion_tokens_details }
+              : {}),
+            ...(prompt_tokens_details !== undefined
+              ? { prompt_tokens_details }
+              : {}),
+            ...(cost !== undefined ? { cost } : {}),
+            ...(cost_details !== undefined ? { cost_details } : {}),
+          },
+          true,
+        ];
+      } else {
+        return [a, false];
+      }
     }
     export function deepClone({
       completion_tokens,
@@ -1810,37 +2001,51 @@ export namespace ObjectiveAI {
       export function merged(
         a: OpenAI.CompletionUsage.CompletionTokensDetails,
         b: OpenAI.CompletionUsage.CompletionTokensDetails
-      ): OpenAI.CompletionUsage.CompletionTokensDetails {
-        const accepted_prediction_tokens = merge(
-          a.accepted_prediction_tokens,
-          b.accepted_prediction_tokens,
-          mergedNumber
-        );
-        const audio_tokens = merge(
+      ): [OpenAI.CompletionUsage.CompletionTokensDetails, boolean] {
+        const [accepted_prediction_tokens, accepted_prediction_tokensChanged] =
+          merge(
+            a.accepted_prediction_tokens,
+            b.accepted_prediction_tokens,
+            mergedNumber
+          );
+        const [audio_tokens, audio_tokensChanged] = merge(
           a.audio_tokens,
           b.audio_tokens,
           mergedNumber
         );
-        const reasoning_tokens = merge(
+        const [reasoning_tokens, reasoning_tokensChanged] = merge(
           a.reasoning_tokens,
           b.reasoning_tokens,
           mergedNumber
         );
-        const rejected_prediction_tokens = merge(
-          a.rejected_prediction_tokens,
-          b.rejected_prediction_tokens,
-          mergedNumber
-        );
-        return {
-          ...(accepted_prediction_tokens !== undefined
-            ? { accepted_prediction_tokens }
-            : {}),
-          ...(audio_tokens !== undefined ? { audio_tokens } : {}),
-          ...(reasoning_tokens !== undefined ? { reasoning_tokens } : {}),
-          ...(rejected_prediction_tokens !== undefined
-            ? { rejected_prediction_tokens }
-            : {}),
-        };
+        const [rejected_prediction_tokens, rejected_prediction_tokensChanged] =
+          merge(
+            a.rejected_prediction_tokens,
+            b.rejected_prediction_tokens,
+            mergedNumber
+          );
+        if (
+          accepted_prediction_tokensChanged ||
+          audio_tokensChanged ||
+          reasoning_tokensChanged ||
+          rejected_prediction_tokensChanged
+        ) {
+          return [
+            {
+              ...(accepted_prediction_tokens !== undefined
+                ? { accepted_prediction_tokens }
+                : {}),
+              ...(audio_tokens !== undefined ? { audio_tokens } : {}),
+              ...(reasoning_tokens !== undefined ? { reasoning_tokens } : {}),
+              ...(rejected_prediction_tokens !== undefined
+                ? { rejected_prediction_tokens }
+                : {}),
+            },
+            true,
+          ];
+        } else {
+          return [a, false];
+        }
       }
       export function deepClone({
         accepted_prediction_tokens,
@@ -1865,21 +2070,28 @@ export namespace ObjectiveAI {
       export function merged(
         a: OpenAI.CompletionUsage.PromptTokensDetails,
         b: OpenAI.CompletionUsage.PromptTokensDetails
-      ): OpenAI.CompletionUsage.PromptTokensDetails {
-        const audio_tokens = merge(
+      ): [OpenAI.CompletionUsage.PromptTokensDetails, boolean] {
+        const [audio_tokens, audio_tokensChanged] = merge(
           a.audio_tokens,
           b.audio_tokens,
           mergedNumber
         );
-        const cached_tokens = merge(
+        const [cached_tokens, cached_tokensChanged] = merge(
           a.cached_tokens,
           b.cached_tokens,
           mergedNumber
         );
-        return {
-          ...(audio_tokens !== undefined ? { audio_tokens } : {}),
-          ...(cached_tokens !== undefined ? { cached_tokens } : {}),
-        };
+        if (audio_tokensChanged || cached_tokensChanged) {
+          return [
+            {
+              ...(audio_tokens !== undefined ? { audio_tokens } : {}),
+              ...(cached_tokens !== undefined ? { cached_tokens } : {}),
+            },
+            true,
+          ];
+        } else {
+          return [a, false];
+        }
       }
       export function deepClone({
         audio_tokens,
@@ -1904,25 +2116,41 @@ export namespace ObjectiveAI {
     }
 
     export namespace CostDetails {
-      export function merged(a: CostDetails, b: CostDetails): CostDetails {
-        const upstream_inference_cost = merge(
+      export function merged(
+        a: CostDetails,
+        b: CostDetails
+      ): [CostDetails, boolean] {
+        const [upstream_inference_cost, upstream_inference_costChanged] = merge(
           a.upstream_inference_cost,
           b.upstream_inference_cost,
           mergedNumber
         );
-        const upstream_upstream_inference_cost = merge(
+        const [
+          upstream_upstream_inference_cost,
+          upstream_upstream_inference_costChanged,
+        ] = merge(
           a.upstream_upstream_inference_cost,
           b.upstream_upstream_inference_cost,
           mergedNumber
         );
-        return {
-          ...(upstream_inference_cost !== undefined
-            ? { upstream_inference_cost }
-            : {}),
-          ...(upstream_upstream_inference_cost !== undefined
-            ? { upstream_upstream_inference_cost }
-            : {}),
-        };
+        if (
+          upstream_inference_costChanged ||
+          upstream_upstream_inference_costChanged
+        ) {
+          return [
+            {
+              ...(upstream_inference_cost !== undefined
+                ? { upstream_inference_cost }
+                : {}),
+              ...(upstream_upstream_inference_cost !== undefined
+                ? { upstream_upstream_inference_cost }
+                : {}),
+            },
+            true,
+          ];
+        } else {
+          return [a, false];
+        }
       }
       export function deepClone({
         upstream_inference_cost,
@@ -2039,51 +2267,46 @@ export namespace ObjectiveAI {
   function merge<T extends {}>(
     a: T,
     b: T,
-    combine?: (a: T, b: T) => T,
-    deepClone?: (t: T) => T
-  ): T;
+    combine?: (a: T, b: T) => [T, boolean]
+  ): [T, boolean];
   function merge<T extends {}>(
     a: T | null,
     b: T | null,
-    combine?: (a: T, b: T) => T,
-    deepClone?: (t: T) => T
-  ): T | null;
+    combine?: (a: T, b: T) => [T, boolean]
+  ): [T | null, boolean];
   function merge<T extends {}>(
     a: T | undefined,
     b: T | undefined,
-    combine?: (a: T, b: T) => T,
-    deepClone?: (t: T) => T
-  ): T | undefined;
+    combine?: (a: T, b: T) => [T, boolean]
+  ): [T | undefined, boolean];
   function merge<T extends {}>(
     a: T | null | undefined,
     b: T | null | undefined,
-    combine?: (a: T, b: T) => T,
-    deepClone?: (t: T) => T
-  ): T | null | undefined;
+    combine?: (a: T, b: T) => [T, boolean]
+  ): [T | null | undefined, boolean];
   function merge<T extends {}>(
     a: T | null | undefined,
     b: T | null | undefined,
-    combine?: (a: T, b: T) => T,
-    deepClone?: (t: T) => T
-  ): T | null | undefined {
+    combine?: (a: T, b: T) => [T, boolean]
+  ): [T | null | undefined, boolean] {
     if (a !== null && a !== undefined && b !== null && b !== undefined) {
-      return combine ? combine(a, b) : deepClone ? deepClone(a) : a;
+      return combine ? combine(a, b) : [a, false];
     } else if (a !== null && a !== undefined) {
-      return deepClone ? deepClone(a) : a;
+      return [a, false];
     } else if (b !== null && b !== undefined) {
-      return deepClone ? deepClone(b) : b;
+      return [b, true];
     } else if (a === null || b === null) {
-      return null;
+      return [null, false];
     } else {
-      return undefined;
+      return [undefined, false];
     }
   }
 
-  function mergedString(a: string, b: string): string {
-    return a + b;
+  function mergedString(a: string, b: string): [string, boolean] {
+    return b === "" ? [a, false] : [a + b, true];
   }
-  function mergedNumber(a: number, b: number): number {
-    return a + b;
+  function mergedNumber(a: number, b: number): [number, boolean] {
+    return b === 0 ? [a, false] : [a + b, true];
   }
   function deepCloneJsonValue(value: unknown): unknown {
     if (Array.isArray(value)) {
