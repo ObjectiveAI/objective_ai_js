@@ -1321,10 +1321,11 @@ export namespace ObjectiveAI {
               );
               const [error, errorChanged] = merge(a.error, b.error);
               const model = a.model;
-              const [completion_metadata, completion_metadataChanged] = merge(
-                a.completion_metadata,
-                b.completion_metadata
-              );
+              const [completion_metadata, completion_metadataChanged] =
+                ChoiceCompletionMetadata.merged(
+                  a.completion_metadata,
+                  b.completion_metadata
+                );
               if (
                 deltaChanged ||
                 finish_reasonChanged ||
@@ -1917,9 +1918,21 @@ export namespace ObjectiveAI {
 
   export namespace Usage {
     export function merged(a: Usage, b: Usage): [Usage, boolean] {
-      const completion_tokens = a.completion_tokens + b.completion_tokens;
-      const prompt_tokens = a.prompt_tokens + b.prompt_tokens;
-      const total_tokens = a.total_tokens + b.total_tokens;
+      const [completion_tokens, completion_tokensChanged] = merge(
+        a.completion_tokens,
+        b.completion_tokens,
+        mergedNumber
+      );
+      const [prompt_tokens, prompt_tokensChanged] = merge(
+        a.prompt_tokens,
+        b.prompt_tokens,
+        mergedNumber
+      );
+      const [total_tokens, total_tokensChanged] = merge(
+        a.total_tokens,
+        b.total_tokens,
+        mergedNumber
+      );
       const [completion_tokens_details, completion_tokens_detailsChanged] =
         merge(
           a.completion_tokens_details,
@@ -1938,6 +1951,9 @@ export namespace ObjectiveAI {
         CostDetails.merged
       );
       if (
+        completion_tokensChanged ||
+        prompt_tokensChanged ||
+        total_tokensChanged ||
         completion_tokens_detailsChanged ||
         prompt_tokens_detailsChanged ||
         costChanged ||
