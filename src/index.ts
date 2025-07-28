@@ -458,24 +458,31 @@ export namespace ObjectiveAI {
             a: Choice[],
             b: Choice[]
           ): [Choice[], boolean] {
-            let changed = false;
-            const merged: Choice[] = [];
-            for (const choice of [...a, ...b]) {
-              const existingIndex = merged.findIndex(
-                (c) => c.index === choice.index
+            let merged: Choice[] | undefined = undefined;
+            for (const choice of b) {
+              const existingIndex = a.findIndex(
+                ({ index }) => index === choice.index
               );
               if (existingIndex === -1) {
-                merged.push(choice);
+                if (merged === undefined) {
+                  merged = [...a, choice];
+                } else {
+                  merged.push(choice);
+                }
               } else {
-                let choiceChanged = false;
-                [merged[existingIndex], choiceChanged] = Choice.merged(
-                  merged[existingIndex],
+                const [mergedChoice, choiceChanged] = Choice.merged(
+                  a[existingIndex],
                   choice
                 );
-                changed ||= choiceChanged;
+                if (choiceChanged) {
+                  if (merged === undefined) {
+                    merged = [...a];
+                  }
+                  merged[existingIndex] = mergedChoice;
+                }
               }
             }
-            return changed ? [merged, true] : [a, false];
+            return merged ? [merged, true] : [a, false];
           }
           export function deepCloneList(choices: Choice[]): Choice[] {
             return choices.map(Choice.deepClone);
@@ -684,25 +691,33 @@ export namespace ObjectiveAI {
                 OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall[],
                 boolean
               ] {
-                const merged: OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall[] =
-                  [];
-                let changed = false;
-                for (const toolCall of [...a, ...b]) {
-                  const existingIndex = merged.findIndex(
-                    (tc) => tc.index === toolCall.index
+                let merged:
+                  | OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall[]
+                  | undefined = undefined;
+                for (const toolCall of b) {
+                  const existingIndex = a.findIndex(
+                    ({ index }) => index === toolCall.index
                   );
                   if (existingIndex === -1) {
-                    merged.push(toolCall);
+                    if (merged === undefined) {
+                      merged = [...a, toolCall];
+                    } else {
+                      merged.push(toolCall);
+                    }
                   } else {
-                    let toolCallChanged = false;
-                    [merged[existingIndex], toolCallChanged] = ToolCall.merged(
-                      merged[existingIndex],
+                    const [mergedToolCall, toolCallChanged] = ToolCall.merged(
+                      a[existingIndex],
                       toolCall
                     );
-                    changed ||= toolCallChanged;
+                    if (toolCallChanged) {
+                      if (merged === undefined) {
+                        merged = [...a];
+                      }
+                      merged[existingIndex] = mergedToolCall;
+                    }
                   }
                 }
-                return changed ? [merged, true] : [a, false];
+                return merged ? [merged, true] : [a, false];
               }
               export function deepCloneList(
                 toolCalls: OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall[]
@@ -1409,24 +1424,31 @@ export namespace ObjectiveAI {
               a: Choice[],
               b: Choice[]
             ): [Choice[], boolean] {
-              const merged: Choice[] = [];
-              let changed = false;
-              for (const choice of [...a, ...b]) {
-                const existingIndex = merged.findIndex(
-                  (c) => c.index === choice.index
+              let merged: Choice[] | undefined = undefined;
+              for (const choice of b) {
+                const existingIndex = a.findIndex(
+                  ({ index }) => index === choice.index
                 );
                 if (existingIndex === -1) {
-                  merged.push(choice);
+                  if (merged === undefined) {
+                    merged = [...a, choice];
+                  } else {
+                    merged.push(choice);
+                  }
                 } else {
-                  let choiceChanged = false;
-                  [merged[existingIndex], choiceChanged] = Choice.merged(
-                    merged[existingIndex],
+                  const [mergedChoice, choiceChanged] = Choice.merged(
+                    a[existingIndex],
                     choice
                   );
-                  changed ||= choiceChanged;
+                  if (choiceChanged) {
+                    if (merged === undefined) {
+                      merged = [...a];
+                    }
+                    merged[existingIndex] = mergedChoice;
+                  }
                 }
               }
-              return changed ? [merged, true] : [a, false];
+              return merged ? [merged, true] : [a, false];
             }
             export function deepCloneList(choices: Choice[]): Choice[] {
               return choices.map(Choice.deepClone);
@@ -1719,24 +1741,31 @@ export namespace ObjectiveAI {
               a: Choice[],
               b: Choice[]
             ): [Choice[], boolean] {
-              const merged: Choice[] = [];
-              let changed = false;
-              for (const choice of [...a, ...b]) {
-                const existingIndex = merged.findIndex(
-                  (c) => c.index === choice.index
+              let merged: Choice[] | undefined = undefined;
+              for (const choice of b) {
+                const existingIndex = a.findIndex(
+                  ({ index }) => index === choice.index
                 );
                 if (existingIndex === -1) {
-                  merged.push(choice);
+                  if (merged === undefined) {
+                    merged = [...a, choice];
+                  } else {
+                    merged.push(choice);
+                  }
                 } else {
-                  let choiceChanged = false;
-                  [merged[existingIndex], choiceChanged] = Choice.merged(
-                    merged[existingIndex],
+                  const [mergedChoice, choiceChanged] = Choice.merged(
+                    a[existingIndex],
                     choice
                   );
-                  changed ||= choiceChanged;
+                  if (choiceChanged) {
+                    if (merged === undefined) {
+                      merged = [...a];
+                    }
+                    merged[existingIndex] = mergedChoice;
+                  }
                 }
               }
-              return changed ? [merged, true] : [a, false];
+              return merged ? [merged, true] : [a, false];
             }
             export function deepCloneList(choices: Choice[]): Choice[] {
               return choices.map(Choice.deepClone);
