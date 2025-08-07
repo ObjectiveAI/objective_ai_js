@@ -1273,15 +1273,21 @@ export namespace ObjectiveAI {
           export interface Choice
             extends Chat.Completions.ChatCompletionChunk.Choice {
             /**
-             * The 'id' of the response choice.
+             * The id of the content of the response choice.
+             * Each choice with the same content will have the same `generate_id`.
+             * Only choices created by 'generate' mode will have this field.
+             */
+            generate_id?: string;
+            /**
+             * The id of the response choice with regards to confidence.
              * Each response choice with the same 'id' is treated as the same
              * with regards to confidence.
              */
-            id?: string;
+            confidence_id?: string;
             /**
              * The weight of this particular response choice.
              */
-            weight?: number;
+            confidence_weight?: number;
             /**
              * The confidence of this response choice, and all other response
              * choices with the same 'id'.
@@ -1324,8 +1330,18 @@ export namespace ObjectiveAI {
                 b.logprobs,
                 Chat.Completions.ChatCompletionChunk.Choice.Logprobs.merged
               );
-              const [id, idChanged] = merge(a.id, b.id);
-              const [weight, weightChanged] = merge(a.weight, b.weight);
+              const [generate_id, generate_idChanged] = merge(
+                a.generate_id,
+                b.generate_id
+              );
+              const [confidence_id, confidence_idChanged] = merge(
+                a.confidence_id,
+                b.confidence_id
+              );
+              const [confidence_weight, confidence_weightChanged] = merge(
+                a.confidence_weight,
+                b.confidence_weight
+              );
               const [confidence, confidenceChanged] = merge(
                 a.confidence,
                 b.confidence
@@ -1345,8 +1361,9 @@ export namespace ObjectiveAI {
                 deltaChanged ||
                 finish_reasonChanged ||
                 logprobsChanged ||
-                idChanged ||
-                weightChanged ||
+                generate_idChanged ||
+                confidence_idChanged ||
+                confidence_weightChanged ||
                 confidenceChanged ||
                 embeddingChanged ||
                 errorChanged ||
@@ -1358,8 +1375,11 @@ export namespace ObjectiveAI {
                     finish_reason,
                     index,
                     ...(logprobs !== undefined ? { logprobs } : {}),
-                    ...(id !== undefined ? { id } : {}),
-                    ...(weight !== undefined ? { weight } : {}),
+                    ...(generate_id !== undefined ? { generate_id } : {}),
+                    ...(confidence_id !== undefined ? { confidence_id } : {}),
+                    ...(confidence_weight !== undefined
+                      ? { confidence_weight }
+                      : {}),
                     ...(confidence !== undefined ? { confidence } : {}),
                     ...(embedding !== undefined ? { embedding } : {}),
                     ...(error !== undefined ? { error } : {}),
@@ -1377,8 +1397,9 @@ export namespace ObjectiveAI {
               finish_reason,
               index,
               logprobs,
-              id,
-              weight,
+              generate_id,
+              confidence_id,
+              confidence_weight,
               confidence,
               embedding,
               error,
@@ -1401,8 +1422,11 @@ export namespace ObjectiveAI {
                         : null,
                     }
                   : {}),
-                ...(id !== undefined ? { id } : {}),
-                ...(weight !== undefined ? { weight } : {}),
+                ...(generate_id !== undefined ? { generate_id } : {}),
+                ...(confidence_id !== undefined ? { confidence_id } : {}),
+                ...(confidence_weight !== undefined
+                  ? { confidence_weight }
+                  : {}),
                 ...(confidence !== undefined ? { confidence } : {}),
                 ...(embedding !== undefined
                   ? {
