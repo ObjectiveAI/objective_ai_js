@@ -921,11 +921,6 @@ export namespace ObjectiveAI {
            * The weight variant used for the query model.
            */
           weight: QueryModel.Weight;
-          /**
-           * List of users authorized to use the query model, besides the creator.
-           * Never present for global query models.
-           */
-          users?: string[];
         }
 
         export interface QueryModel extends SetQueryModel {
@@ -937,21 +932,6 @@ export namespace ObjectiveAI {
            * The name of the query model.
            */
           name: string;
-          /**
-           * The creation timestamp of the query model.
-           * Number of seconds since the Unix epoch.
-           */
-          created: number;
-          /**
-           * The version of the query model.
-           * Always a whole number.
-           */
-          version: number;
-          /**
-           * The ID of the user who created the query model.
-           * If not provided, this is a global query model.
-           */
-          created_by?: string;
         }
 
         export namespace QueryModel {
