@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { APIPromise } from "openai/core";
 import { Stream } from "openai/streaming";
 import OpenAIChatCompletions from "openai/resources/chat/completions";
+import { createXXHash128, xxhash128 } from "hash-wasm";
 
 export namespace ObjectiveAI {
   export namespace Chat {
@@ -153,21 +154,62 @@ export namespace ObjectiveAI {
          */
         model: string;
         /**
-         * OpenRouter provider preferences.
+         * integer, 1 or above
+         * This sets the upper limit for the number of tokens the model can generate in response.
+         * It won’t produce more than this limit.
+         * The maximum value is the context length minus the prompt length.
          */
-        provider?: ChatCompletionCreateParams.ProviderPreferences;
+        max_tokens?: number;
+        /**
+         * float, 0.0 to 1.0
+         * Represents the minimum probability for a token to be considered, relative to the probability of the most likely token.
+         * (The value changes depending on the confidence level of the most probable token.)
+         * If your Min-P is set to 0.1, that means it will only allow for tokens that are at least 1/10th as probable as the best possible option.
+         */
+        min_p?: number;
         /**
          * OpenRouter plugins.
          */
         plugins?: ChatCompletionCreateParams.Plugin[];
         /**
+         * OpenRouter provider preferences.
+         */
+        provider?: ChatCompletionCreateParams.ProviderPreferences;
+        /**
          * OpenRouter reasoning configuration (e.g. for Gemini or Anthropic models).
          */
         reasoning?: ChatCompletionCreateParams.Reasoning;
         /**
+         * float, 0.0 to 2.0
+         * Helps to reduce the repetition of tokens from the input.
+         * A higher value makes the model less likely to repeat tokens, but too high a value can make the output less coherent (often with run-on sentences that lack small words).
+         * Token penalty scales based on original token’s probability.
+         */
+        repetition_penalty?: number;
+        /**
+         * float, 0.0 to 1.0
+         * Consider only the top tokens with “sufficiently high” probabilities based on the probability of the most likely token.
+         * Think of it like a dynamic Top-P.
+         * A lower Top-A value focuses the choices based on the highest probability token but with a narrower scope.
+         * A higher Top-A value does not necessarily affect the creativity of the output, but rather refines the filtering process based on the maximum probability.
+         */
+        top_a?: number;
+        /**
+         * integer, 0 or above
+         * This limits the model’s choice of tokens at each step, making it choose from a smaller set.
+         * A value of 1 means the model will always pick the most likely next token, leading to predictable results.
+         * By default this setting is disabled, making the model to consider all choices.
+         */
+        top_k?: number;
+        /**
          * OpenRouter usage accounting configuration.
          */
         usage?: ChatCompletionCreateParams.Usage;
+        /**
+         * Controls the verbosity and length of the model response.
+         * Lower values produce more concise responses, while higher values produce more detailed and comprehensive responses.
+         */
+        verbosity?: "low" | "medium" | "high";
       }
 
       export interface ChatCompletionCreateParamsStreaming
@@ -832,7 +874,32 @@ export namespace ObjectiveAI {
         export interface ChatCompletionCreateParamsBase
           extends Omit<
             Chat.Completions.ChatCompletionCreateParamsBase,
-            "model"
+            | "model"
+            | "frequency_penalty"
+            | "logit_bias"
+            | "max_completion_tokens"
+            | "presence_penalty"
+            | "reasoning_effort"
+            | "stop"
+            | "temperature"
+            | "top_p"
+            | "audio"
+            | "metadata"
+            | "modalities"
+            | "parallel_tool_calls"
+            | "store"
+            | "tool_choice"
+            | "user"
+            | "web_search_options"
+            | "max_tokens"
+            | "min_p"
+            | "provider"
+            | "reasoning"
+            | "repetition_penalty"
+            | "top_a"
+            | "top_k"
+            | "verbosity"
+            | "plugins"
           > {
           /**
            * Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI offers a
@@ -841,15 +908,11 @@ export namespace ObjectiveAI {
            * [model guide](https://platform.openai.com/docs/models) to browse and compare
            * available models.
            */
-          model: `objectiveai/${string}` | SetQueryModel;
+          model: `objectiveai/${string}` | QueryModelBase;
           /**
            * If provided, embeddings will be generated for each response choice.
            */
           embeddings?: Embeddings.Model;
-          /**
-           * If provided, will override the default weight for models with a corresponding index.
-           */
-          weights?: (number | null)[];
         }
 
         export interface ChatCompletionCreateParamsStreaming
@@ -912,29 +975,115 @@ export namespace ObjectiveAI {
           }
         }
 
-        export interface SetQueryModel {
+        export interface QueryModelBase {
           /**
            * The list of models used in the query model.
            */
-          models: SetModel[];
+          models: ModelBase[];
           /**
            * The weight variant used for the query model.
            */
-          weight: QueryModel.Weight;
+          weight: QueryModelBase.Weight;
         }
 
-        export interface QueryModel extends SetQueryModel {
-          /**
-           * The list of models used in the query model.
-           */
-          models: Model[];
-          /**
-           * The name of the query model.
-           */
-          name: string;
-        }
+        export namespace QueryModelBase {
+          export async function toQueryModel(
+            queryModel: QueryModelBase
+          ): Promise<QueryModel> {
+            // convert model bases to models
+            const models = new Array<Model>(queryModel.models.length);
+            for (let i = 0; i < queryModel.models.length; i++) {
+              const modelBase = queryModel.models[i];
+              const name = await ModelBase.computeName(modelBase);
+              models[i] = {
+                ...modelBase,
+                name,
+                index: i,
+              };
+            }
 
-        export namespace QueryModel {
+            // sort models by name
+            models.sort(({ name: a }, { name: b }) => (a < b ? -1 : 1));
+
+            // initialize hasher
+            const hasher = await XxHash3_128Hasher();
+
+            // prepare weight + add weight to hasher
+            const weight = (() => {
+              switch (queryModel.weight.type) {
+                case "static":
+                  return { type: "static" };
+                case "training_table":
+                  const { embeddings_model, top } = queryModel.weight;
+                  return {
+                    type: "training_table",
+                    embeddings_model,
+                    top,
+                  };
+              }
+            })();
+            hasher.update(JSON.stringify(weight));
+
+            //add model names to hasher + fix model indices
+            for (let i = 0; i < models.length; i++) {
+              models[i].index = i;
+              const name = models[i].name;
+              hasher.update(name);
+            }
+
+            // the name is the hash as base62
+            // prepadded with zeroes to ensure 22 characters
+            const name = XxHash3_128HasherFinishBase62(hasher);
+
+            return {
+              name,
+              models,
+              weight: queryModel.weight,
+            };
+          }
+
+          export async function computeName(
+            queryModel: QueryModelBase
+          ): Promise<string> {
+            // convert model bases to model computed names
+            const modelNames = new Array<string>(queryModel.models.length);
+            for (let i = 0; i < queryModel.models.length; i++) {
+              const modelBase = queryModel.models[i];
+              modelNames[i] = await ModelBase.computeName(modelBase);
+            }
+
+            // sort model names
+            modelNames.sort((a, b) => (a < b ? -1 : 1));
+
+            // initialize hasher
+            const hasher = await XxHash3_128Hasher();
+
+            // prepare weight + add weight to hasher
+            const weight = (() => {
+              switch (queryModel.weight.type) {
+                case "static":
+                  return { type: "static" };
+                case "training_table":
+                  const { embeddings_model, top } = queryModel.weight;
+                  return {
+                    type: "training_table",
+                    embeddings_model,
+                    top,
+                  };
+              }
+            })();
+            hasher.update(JSON.stringify(weight));
+
+            // add model names to hasher
+            for (const name of modelNames) {
+              hasher.update(name);
+            }
+
+            // the name is the hash as base62
+            // prepadded with zeroes to ensure 22 characters
+            return XxHash3_128HasherFinishBase62(hasher);
+          }
+
           export type Weight =
             | {
                 type: "static";
@@ -952,7 +1101,20 @@ export namespace ObjectiveAI {
               };
         }
 
-        export interface SetModel {
+        export interface QueryModel extends QueryModelBase {
+          /**
+           * The name of the query model.
+           * A unique hash of the query model and its parameters and models.
+           * 22-character alphanumeric string.
+           */
+          name: string;
+          /**
+           * The list of models used in the query model.
+           */
+          models: Model[];
+        }
+
+        export interface ModelBase {
           /**
            * The id for the model.
            */
@@ -960,17 +1122,34 @@ export namespace ObjectiveAI {
           /**
            * The mode of the model.
            */
-          mode: Model.Mode;
+          mode: ModelBase.Mode;
           /**
            * The weight assigned to the model.
            */
-          weight: Model.Weight;
+          weight: ModelBase.Weight;
           /**
            * Number between -2.0 and 2.0. Positive values penalize new tokens based on their
            * existing frequency in the text so far, decreasing the model's likelihood to
            * repeat the same line verbatim.
            */
           frequency_penalty?: number;
+          /**
+           * Modify the likelihood of specified tokens appearing in the completion.
+           *
+           * Accepts a JSON object that maps tokens (specified by their token ID in the
+           * tokenizer) to an associated bias value from -100 to 100. Mathematically, the
+           * bias is added to the logits generated by the model prior to sampling. The exact
+           * effect will vary per model, but values between -1 and 1 should decrease or
+           * increase likelihood of selection; values like -100 or 100 should result in a ban
+           * or exclusive selection of the relevant token.
+           */
+          logit_bias?: Record<string, number>;
+          /**
+           * An upper bound for the number of tokens that can be generated for a completion,
+           * including visible output tokens and
+           * [reasoning tokens](https://platform.openai.com/docs/guides/reasoning).
+           */
+          max_completion_tokens?: number;
           /**
            * Number between -2.0 and 2.0. Positive values penalize new tokens based on
            * whether they appear in the text so far, increasing the model's likelihood to
@@ -984,6 +1163,13 @@ export namespace ObjectiveAI {
            * result in faster responses and fewer tokens used on reasoning in a response.
            */
           reasoning_effort?: "low" | "medium" | "high";
+          /**
+           * Not supported with latest reasoning models `o3` and `o4-mini`.
+           *
+           * Up to 4 sequences where the API will stop generating further tokens. The
+           * returned text will not contain the stop sequence.
+           */
+          stop?: string | string[];
           /**
            * What sampling temperature to use, between 0 and 2. Higher values like 0.8 will
            * make the output more random, while lower values like 0.2 will make it more
@@ -1000,6 +1186,20 @@ export namespace ObjectiveAI {
            */
           top_p?: number;
           /**
+           * integer, 1 or above
+           * This sets the upper limit for the number of tokens the model can generate in response.
+           * It won’t produce more than this limit.
+           * The maximum value is the context length minus the prompt length.
+           */
+          max_tokens?: number;
+          /**
+           * float, 0.0 to 1.0
+           * Represents the minimum probability for a token to be considered, relative to the probability of the most likely token.
+           * (The value changes depending on the confidence level of the most probable token.)
+           * If your Min-P is set to 0.1, that means it will only allow for tokens that are at least 1/10th as probable as the best possible option.
+           */
+          min_p?: number;
+          /**
            * OpenRouter provider preferences.
            */
           provider?: ChatCompletionCreateParams.ProviderPreferences;
@@ -1007,16 +1207,303 @@ export namespace ObjectiveAI {
            * OpenRouter reasoning configuration (e.g. for Gemini or Anthropic models).
            */
           reasoning?: ChatCompletionCreateParams.Reasoning;
-        }
-
-        export interface Model extends SetModel {
           /**
-           * The index of the model, within the parent Query Model.
+           * float, 0.0 to 2.0
+           * Helps to reduce the repetition of tokens from the input.
+           * A higher value makes the model less likely to repeat tokens, but too high a value can make the output less coherent (often with run-on sentences that lack small words).
+           * Token penalty scales based on original token’s probability.
            */
-          index: number;
+          repetition_penalty?: number;
+          /**
+           * float, 0.0 to 1.0
+           * Consider only the top tokens with “sufficiently high” probabilities based on the probability of the most likely token.
+           * Think of it like a dynamic Top-P.
+           * A lower Top-A value focuses the choices based on the highest probability token but with a narrower scope.
+           * A higher Top-A value does not necessarily affect the creativity of the output, but rather refines the filtering process based on the maximum probability.
+           */
+          top_a?: number;
+          /**
+           * integer, 0 or above
+           * This limits the model’s choice of tokens at each step, making it choose from a smaller set.
+           * A value of 1 means the model will always pick the most likely next token, leading to predictable results.
+           * By default this setting is disabled, making the model to consider all choices.
+           */
+          top_k?: number;
+          /**
+           * Controls the verbosity and length of the model response.
+           * Lower values produce more concise responses, while higher values produce more detailed and comprehensive responses.
+           */
+          verbosity?: "low" | "medium" | "high";
         }
 
-        export namespace Model {
+        export namespace ModelBase {
+          export async function computeName(
+            modelBase: ModelBase
+          ): Promise<string> {
+            const prepareFloat = (
+              value: number | undefined,
+              defaultValue: number,
+              min: number,
+              max: number
+            ): number | undefined => {
+              if (
+                value === undefined ||
+                !Number.isFinite(value) ||
+                value === defaultValue
+              ) {
+                return undefined;
+              } else if (value < min) {
+                return min;
+              } else if (value > max) {
+                return max;
+              } else {
+                return value;
+              }
+            };
+            const prepareInteger = (
+              value: number | undefined,
+              defaultValue: number,
+              min: number,
+              max: number
+            ): number | undefined => {
+              if (value === undefined || value === defaultValue) {
+                return undefined;
+              } else if (value < min) {
+                return min;
+              } else if (value > max) {
+                return max;
+              } else {
+                return value;
+              }
+            };
+            const prepareStrings = (
+              value: string[],
+              sort: boolean
+            ): string[] => {
+              const retValue = [];
+              const seen = new Set<string>();
+              for (const v of value) {
+                if (v !== "" && !seen.has(v)) {
+                  seen.add(v);
+                  retValue.push(v);
+                }
+              }
+              if (sort) {
+                return retValue.sort();
+              } else {
+                return retValue;
+              }
+            };
+            const prepareLogitBias = (
+              logit_bias: Record<string, number> | undefined
+            ): Record<string, number> | undefined => {
+              if (logit_bias === undefined) {
+                return undefined;
+              }
+              const arr = [];
+              for (const [token, weight] of Object.entries(logit_bias)) {
+                if (token !== "" && token.match(/^[0-9]+$/) && weight !== 0) {
+                  if (weight <= -100) {
+                    arr.push([token, -100]);
+                  } else if (weight >= 100) {
+                    arr.push([token, 100]);
+                  } else {
+                    arr.push([token, weight]);
+                  }
+                }
+              }
+              return Object.fromEntries(arr);
+            };
+            const prepareVerbosity = (
+              verbosity: ModelBase["verbosity"]
+            ): ModelBase["verbosity"] | undefined => {
+              if (verbosity === "medium") {
+                return undefined;
+              } else {
+                return verbosity;
+              }
+            };
+            const prepareStop = (
+              stop: string | string[] | undefined
+            ): string | string[] | undefined => {
+              if (stop === undefined) {
+                return undefined;
+              } else if (typeof stop === "string") {
+                if (stop === "") {
+                  return undefined;
+                }
+              } else {
+                const prepared = prepareStrings(stop, true);
+                if (prepared.length === 0) {
+                  return undefined;
+                } else if (prepared.length === 1) {
+                  return prepared[0];
+                } else {
+                  return prepared;
+                }
+              }
+            };
+            const prepareReasoning = (
+              reasoning: ModelBase["reasoning"]
+            ): ModelBase["reasoning"] | undefined => {
+              if (reasoning === undefined || reasoning.max_tokens === 0) {
+                return undefined;
+              } else if (reasoning.max_tokens > 2_147_483_647) {
+                return { max_tokens: 2_147_483_647 };
+              } else {
+                return reasoning;
+              }
+            };
+            const prepareProvider = (
+              provider: ModelBase["provider"]
+            ): ModelBase["provider"] | undefined => {
+              if (provider === undefined) {
+                return provider;
+              }
+              let order = provider.order
+                ? prepareStrings(provider.order, false)
+                : undefined;
+              if (order?.length === 0) order = undefined;
+              let allow_fallbacks = provider.allow_fallbacks
+                ? undefined
+                : false;
+              let require_parameters = provider.require_parameters
+                ? true
+                : undefined;
+              let data_collection: "allow" | "deny" | undefined =
+                provider.data_collection === "allow" ? undefined : "deny";
+              let only = provider.only
+                ? prepareStrings(provider.only, true)
+                : undefined;
+              if (only?.length === 0) only = undefined;
+              let ignore = provider.ignore
+                ? prepareStrings(provider.ignore, true)
+                : undefined;
+              if (ignore?.length === 0) ignore = undefined;
+              let quantizations = provider.quantizations
+                ? prepareStrings(provider.quantizations, true)
+                : undefined;
+              if (quantizations?.length === 0) quantizations = undefined;
+              let sort = provider.sort === "" ? undefined : provider.sort;
+              if (
+                order === undefined &&
+                allow_fallbacks === undefined &&
+                require_parameters === undefined &&
+                data_collection === undefined &&
+                only === undefined &&
+                ignore === undefined &&
+                quantizations === undefined &&
+                sort === undefined
+              ) {
+                return undefined;
+              } else {
+                return {
+                  ...(order !== undefined ? { order } : {}),
+                  ...(allow_fallbacks !== undefined ? { allow_fallbacks } : {}),
+                  ...(require_parameters !== undefined
+                    ? { require_parameters }
+                    : {}),
+                  ...(data_collection !== undefined ? { data_collection } : {}),
+                  ...(only !== undefined ? { only } : {}),
+                  ...(ignore !== undefined ? { ignore } : {}),
+                  ...(quantizations !== undefined ? { quantizations } : {}),
+                  ...(sort !== undefined ? { sort } : {}),
+                };
+              }
+            };
+            const { id, mode, reasoning_effort } = modelBase;
+            const frequency_penalty = prepareFloat(
+              modelBase.frequency_penalty,
+              0.0,
+              -2.0,
+              2.0
+            );
+            const presence_penalty = prepareFloat(
+              modelBase.presence_penalty,
+              0.0,
+              -2.0,
+              2.0
+            );
+            const repetition_penalty = prepareFloat(
+              modelBase.repetition_penalty,
+              1.0,
+              0.0,
+              2.0
+            );
+            const temperature = prepareFloat(
+              modelBase.temperature,
+              1.0,
+              0.0,
+              2.0
+            );
+            const top_p = prepareFloat(modelBase.top_p, 1.0, 0.0, 1.0);
+            const min_p = prepareFloat(modelBase.min_p, 0.0, 0.0, 1.0);
+            const top_a = prepareFloat(modelBase.top_a, 0.0, 0.0, 1.0);
+            const max_completion_tokens = prepareInteger(
+              modelBase.max_completion_tokens,
+              0,
+              0,
+              2_147_483_647
+            );
+            const max_tokens = prepareInteger(
+              modelBase.max_tokens,
+              0,
+              0,
+              2_147_483_647
+            );
+            const top_k = prepareInteger(modelBase.top_k, 0, 0, 2_147_483_647);
+            const logit_bias = prepareLogitBias(modelBase.logit_bias);
+            const verbosity = prepareVerbosity(modelBase.verbosity);
+            const stop = prepareStop(modelBase.stop);
+            const reasoning = prepareReasoning(modelBase.reasoning);
+            const provider = prepareProvider(modelBase.provider);
+            const weight = (() => {
+              switch (modelBase.weight.type) {
+                case "static":
+                  const { weight } = modelBase.weight;
+                  return { type: "static", weight };
+                case "training_table":
+                  const { base_weight, min_weight, max_weight } =
+                    modelBase.weight;
+                  return {
+                    type: "training_table",
+                    base_weight,
+                    min_weight,
+                    max_weight,
+                  };
+              }
+            })();
+            const preparedModelBase = {
+              id,
+              mode,
+              ...(frequency_penalty !== undefined ? { frequency_penalty } : {}),
+              ...(logit_bias !== undefined ? { logit_bias } : {}),
+              ...(max_completion_tokens !== undefined
+                ? { max_completion_tokens }
+                : {}),
+              ...(presence_penalty !== undefined ? { presence_penalty } : {}),
+              ...(reasoning_effort !== undefined ? { reasoning_effort } : {}),
+              ...(stop !== undefined ? { stop } : {}),
+              ...(temperature !== undefined ? { temperature } : {}),
+              ...(top_p !== undefined ? { top_p } : {}),
+              ...(max_tokens !== undefined ? { max_tokens } : {}),
+              ...(min_p !== undefined ? { min_p } : {}),
+              ...(provider !== undefined ? { provider } : {}),
+              ...(reasoning !== undefined ? { reasoning } : {}),
+              ...(repetition_penalty !== undefined
+                ? { repetition_penalty }
+                : {}),
+              ...(top_a !== undefined ? { top_a } : {}),
+              ...(top_k !== undefined ? { top_k } : {}),
+              ...(verbosity !== undefined ? { verbosity } : {}),
+              weight,
+            };
+            const name = await XxHash3_128Base62Id(
+              JSON.stringify(preparedModelBase)
+            );
+            return name;
+          }
+
           export type Mode =
             | "generate"
             | "select_thinking"
@@ -1033,6 +1520,19 @@ export namespace ObjectiveAI {
                 min_weight: number;
                 max_weight: number;
               };
+        }
+
+        export interface Model extends ModelBase {
+          /**
+           * The name of the model.
+           * A unique hash of the model and its parameters.
+           * 22-character alphanumeric string.
+           */
+          name: string;
+          /**
+           * The index of the model, within the parent Query Model.
+           */
+          index: number;
         }
 
         export interface ChoiceCompletionMetadata {
@@ -1284,9 +1784,15 @@ export namespace ObjectiveAI {
              */
             error?: Error;
             /**
-             * The model which generated this response choice.
+             * The name of the model which generated this response choice.
+             * A unique hash of the model and its parameters.
+             * 22-character alphanumeric string.
              */
-            model: Model;
+            model: string;
+            /**
+             * The index of the model, within the parent Query Model, which generated this response choice.
+             */
+            model_index: number;
             /**
              * Upstream metadata for the completion which generated this response choice.
              */
@@ -1332,6 +1838,7 @@ export namespace ObjectiveAI {
               );
               const [error, errorChanged] = merge(a.error, b.error);
               const model = a.model;
+              const model_index = a.model_index;
               const [completion_metadata, completion_metadataChanged] =
                 ChoiceCompletionMetadata.merged(
                   a.completion_metadata,
@@ -1364,6 +1871,7 @@ export namespace ObjectiveAI {
                     ...(embedding !== undefined ? { embedding } : {}),
                     ...(error !== undefined ? { error } : {}),
                     model,
+                    model_index,
                     completion_metadata,
                   },
                   true,
@@ -1384,6 +1892,7 @@ export namespace ObjectiveAI {
               embedding,
               error,
               model,
+              model_index,
               completion_metadata,
             }: Choice): Choice {
               return {
@@ -1420,6 +1929,7 @@ export namespace ObjectiveAI {
                   : {}),
                 ...(error !== undefined ? { error } : {}),
                 model,
+                model_index,
                 completion_metadata:
                   ChoiceCompletionMetadata.deepClone(completion_metadata),
               };
@@ -1506,9 +2016,15 @@ export namespace ObjectiveAI {
              */
             error?: Error;
             /**
-             * The model which generated this response choice.
+             * The name of the model which generated this response choice.
+             * A unique hash of the model and its parameters.
+             * 22-character alphanumeric string.
              */
-            model: Model;
+            model: string;
+            /**
+             * The index of the model, within the parent Query Model, which generated this response choice.
+             */
+            model_index: number;
             /**
              * Upstream metadata for the completion which generated this response choice.
              */
@@ -1536,12 +2052,6 @@ export namespace ObjectiveAI {
            * preferred for models that support it.
            */
           response_format: ResponseFormat;
-          /**
-           * The 'n' parameter to propagate to the upstream Query.
-           * The base 'n' parameter controls the number of Query Tool choices,
-           * whereas 'query_n' controls the number of Query choices per Query Tool choice.
-           */
-          query_n?: number;
         }
 
         export interface ChatCompletionCreateParamsStreaming
@@ -2370,4 +2880,42 @@ export namespace ObjectiveAI {
     }
     return value;
   }
+}
+
+let _hasher: Promise<Awaited<ReturnType<typeof createXXHash128>>> | null = null;
+async function XxHash3_128Hasher(): Promise<
+  Awaited<ReturnType<typeof createXXHash128>>
+> {
+  const hasher = await (_hasher ??= createXXHash128(0, 0));
+  hasher.init();
+  return hasher;
+}
+
+// returns a 22-character alphanumeric string that is a hash of the input
+async function XxHash3_128Base62Id(input: string): Promise<string> {
+  const hasher = await XxHash3_128Hasher();
+  hasher.update(input);
+  return XxHash3_128HasherFinishBase62(hasher);
+}
+
+function XxHash3_128HasherFinishBase62(
+  hasher: Awaited<ReturnType<typeof createXXHash128>>
+): string {
+  const toBase62 = (hash: bigint): string => {
+    const B62 =
+      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    const N0 = BigInt(0);
+    const N62 = BigInt(62);
+    if (hash === N0) return "0";
+    let result = "";
+    while (hash > N0) {
+      result = B62[Number(hash % N62)] + result;
+      hash /= N62;
+    }
+    return result;
+  };
+  const hashHex = hasher.digest("hex");
+  const hashBigInt = BigInt(`0x${hashHex}`);
+  const hashB62 = toBase62(hashBigInt);
+  return hashB62.padStart(22, "0");
 }
