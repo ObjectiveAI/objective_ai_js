@@ -1240,38 +1240,12 @@ export namespace ObjectiveAI {
           export async function computeName(
             modelBase: ModelBase
           ): Promise<string> {
-            const prepareFloat = (
+            const prepareNumber = (
               value: number | undefined,
-              defaultValue: number,
-              min: number,
-              max: number
-            ): number | undefined => {
-              if (
-                value === undefined ||
-                !Number.isFinite(value) ||
-                value === defaultValue
-              ) {
-                return undefined;
-              } else if (value < min) {
-                return min;
-              } else if (value > max) {
-                return max;
-              } else {
-                return value;
-              }
-            };
-            const prepareInteger = (
-              value: number | undefined,
-              defaultValue: number,
-              min: number,
-              max: number
+              defaultValue: number
             ): number | undefined => {
               if (value === undefined || value === defaultValue) {
                 return undefined;
-              } else if (value < min) {
-                return min;
-              } else if (value > max) {
-                return max;
               } else {
                 return value;
               }
@@ -1279,40 +1253,26 @@ export namespace ObjectiveAI {
             const prepareStrings = (
               value: string[],
               sort: boolean
-            ): string[] => {
-              const retValue = [];
-              const seen = new Set<string>();
-              for (const v of value) {
-                if (v !== "" && !seen.has(v)) {
-                  seen.add(v);
-                  retValue.push(v);
-                }
-              }
-              if (sort) {
-                return retValue.sort();
+            ): string[] | undefined => {
+              if (value.length === 0) {
+                return undefined;
+              } else if (sort) {
+                return [...value].sort();
               } else {
-                return retValue;
+                return value;
               }
             };
             const prepareLogitBias = (
               logit_bias: Record<string, number> | undefined
             ): Record<string, number> | undefined => {
-              if (logit_bias === undefined) {
+              if (
+                logit_bias === undefined ||
+                Object.keys(logit_bias).length === 0
+              ) {
                 return undefined;
+              } else {
+                return logit_bias;
               }
-              const arr = [];
-              for (const [token, weight] of Object.entries(logit_bias)) {
-                if (token !== "" && token.match(/^[0-9]+$/) && weight !== 0) {
-                  if (weight <= -100) {
-                    arr.push([token, -100]);
-                  } else if (weight >= 100) {
-                    arr.push([token, 100]);
-                  } else {
-                    arr.push([token, weight]);
-                  }
-                }
-              }
-              return Object.fromEntries(arr);
             };
             const prepareVerbosity = (
               verbosity: ModelBase["verbosity"]
@@ -1329,18 +1289,13 @@ export namespace ObjectiveAI {
               if (stop === undefined) {
                 return undefined;
               } else if (typeof stop === "string") {
-                if (stop === "") {
-                  return undefined;
-                }
+                return stop;
+              } else if (stop.length === 0) {
+                return undefined;
+              } else if (stop.length === 1) {
+                return stop[0];
               } else {
-                const prepared = prepareStrings(stop, true);
-                if (prepared.length === 0) {
-                  return undefined;
-                } else if (prepared.length === 1) {
-                  return prepared[0];
-                } else {
-                  return prepared;
-                }
+                return [...stop].sort();
               }
             };
             const prepareReasoning = (
@@ -1348,8 +1303,6 @@ export namespace ObjectiveAI {
             ): ModelBase["reasoning"] | undefined => {
               if (reasoning === undefined || reasoning.max_tokens === 0) {
                 return undefined;
-              } else if (reasoning.max_tokens > 2_147_483_647) {
-                return { max_tokens: 2_147_483_647 };
               } else {
                 return reasoning;
               }
@@ -1363,28 +1316,26 @@ export namespace ObjectiveAI {
               let order = provider.order
                 ? prepareStrings(provider.order, false)
                 : undefined;
-              if (order?.length === 0) order = undefined;
               let allow_fallbacks = provider.allow_fallbacks
                 ? undefined
                 : false;
               let require_parameters = provider.require_parameters
                 ? true
                 : undefined;
-              let data_collection: "allow" | "deny" | undefined =
-                provider.data_collection === "allow" ? undefined : "deny";
+              let data_collection: "deny" | undefined =
+                provider.data_collection === "allow"
+                  ? undefined
+                  : provider.data_collection;
               let only = provider.only
                 ? prepareStrings(provider.only, true)
                 : undefined;
-              if (only?.length === 0) only = undefined;
               let ignore = provider.ignore
                 ? prepareStrings(provider.ignore, true)
                 : undefined;
-              if (ignore?.length === 0) ignore = undefined;
               let quantizations = provider.quantizations
                 ? prepareStrings(provider.quantizations, true)
                 : undefined;
-              if (quantizations?.length === 0) quantizations = undefined;
-              let sort = provider.sort === "" ? undefined : provider.sort;
+              let sort = provider.sort;
               if (
                 order === undefined &&
                 allow_fallbacks === undefined &&
@@ -1412,46 +1363,28 @@ export namespace ObjectiveAI {
               }
             };
             const { id, mode, reasoning_effort } = modelBase;
-            const frequency_penalty = prepareFloat(
+            const frequency_penalty = prepareNumber(
               modelBase.frequency_penalty,
-              0.0,
-              -2.0,
-              2.0
+              0.0
             );
-            const presence_penalty = prepareFloat(
+            const presence_penalty = prepareNumber(
               modelBase.presence_penalty,
-              0.0,
-              -2.0,
-              2.0
+              0.0
             );
-            const repetition_penalty = prepareFloat(
+            const repetition_penalty = prepareNumber(
               modelBase.repetition_penalty,
-              1.0,
-              0.0,
-              2.0
+              1.0
             );
-            const temperature = prepareFloat(
-              modelBase.temperature,
-              1.0,
-              0.0,
-              2.0
-            );
-            const top_p = prepareFloat(modelBase.top_p, 1.0, 0.0, 1.0);
-            const min_p = prepareFloat(modelBase.min_p, 0.0, 0.0, 1.0);
-            const top_a = prepareFloat(modelBase.top_a, 0.0, 0.0, 1.0);
-            const max_completion_tokens = prepareInteger(
+            const temperature = prepareNumber(modelBase.temperature, 1.0);
+            const top_p = prepareNumber(modelBase.top_p, 1.0);
+            const min_p = prepareNumber(modelBase.min_p, 0.0);
+            const top_a = prepareNumber(modelBase.top_a, 0.0);
+            const max_completion_tokens = prepareNumber(
               modelBase.max_completion_tokens,
-              0,
-              0,
-              2_147_483_647
+              0
             );
-            const max_tokens = prepareInteger(
-              modelBase.max_tokens,
-              0,
-              0,
-              2_147_483_647
-            );
-            const top_k = prepareInteger(modelBase.top_k, 0, 0, 2_147_483_647);
+            const max_tokens = prepareNumber(modelBase.max_tokens, 0);
+            const top_k = prepareNumber(modelBase.top_k, 0);
             const logit_bias = prepareLogitBias(modelBase.logit_bias);
             const verbosity = prepareVerbosity(modelBase.verbosity);
             const stop = prepareStop(modelBase.stop);
