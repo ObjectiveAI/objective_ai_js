@@ -1316,12 +1316,10 @@ export namespace ObjectiveAI {
               let order = provider.order
                 ? prepareStrings(provider.order, false)
                 : undefined;
-              let allow_fallbacks = provider.allow_fallbacks
-                ? undefined
-                : false;
-              let require_parameters = provider.require_parameters
-                ? true
-                : undefined;
+              let allow_fallbacks =
+                provider.allow_fallbacks === false ? false : undefined;
+              let require_parameters =
+                provider.require_parameters === true ? true : undefined;
               let data_collection: "deny" | undefined =
                 provider.data_collection === "allow"
                   ? undefined
@@ -1390,7 +1388,7 @@ export namespace ObjectiveAI {
             const stop = prepareStop(modelBase.stop);
             const reasoning = prepareReasoning(modelBase.reasoning);
             const provider = prepareProvider(modelBase.provider);
-            const weight = (() => {
+            const weight: ModelBase.Weight = (() => {
               switch (modelBase.weight.type) {
                 case "static":
                   const { weight } = modelBase.weight;
@@ -1406,34 +1404,71 @@ export namespace ObjectiveAI {
                   };
               }
             })();
-            const preparedModelBase = {
-              id,
-              mode,
-              ...(frequency_penalty !== undefined ? { frequency_penalty } : {}),
-              ...(logit_bias !== undefined ? { logit_bias } : {}),
-              ...(max_completion_tokens !== undefined
-                ? { max_completion_tokens }
-                : {}),
-              ...(presence_penalty !== undefined ? { presence_penalty } : {}),
-              ...(reasoning_effort !== undefined ? { reasoning_effort } : {}),
-              ...(stop !== undefined ? { stop } : {}),
-              ...(temperature !== undefined ? { temperature } : {}),
-              ...(top_p !== undefined ? { top_p } : {}),
-              ...(max_tokens !== undefined ? { max_tokens } : {}),
-              ...(min_p !== undefined ? { min_p } : {}),
-              ...(provider !== undefined ? { provider } : {}),
-              ...(reasoning !== undefined ? { reasoning } : {}),
-              ...(repetition_penalty !== undefined
-                ? { repetition_penalty }
-                : {}),
-              ...(top_a !== undefined ? { top_a } : {}),
-              ...(top_k !== undefined ? { top_k } : {}),
-              ...(verbosity !== undefined ? { verbosity } : {}),
-              weight,
-            };
-            const name = await XxHash3_128Base62Id(
-              JSON.stringify(preparedModelBase)
-            );
+            let preparedModelBaseJson = `{"id":"${id}","mode":"${mode}"`;
+            if (frequency_penalty !== undefined)
+              preparedModelBaseJson += `,"frequency_penalty":${floatNumberJson(
+                frequency_penalty
+              )}`;
+            if (logit_bias !== undefined)
+              preparedModelBaseJson += `,"logit_bias":${JSON.stringify(
+                logit_bias
+              )}`;
+            if (max_completion_tokens !== undefined)
+              preparedModelBaseJson += `,"max_completion_tokens":${max_completion_tokens}`;
+            if (presence_penalty !== undefined)
+              preparedModelBaseJson += `,"presence_penalty":${floatNumberJson(
+                presence_penalty
+              )}`;
+            if (reasoning_effort !== undefined)
+              preparedModelBaseJson += `,"reasoning_effort":"${reasoning_effort}"`;
+            if (stop !== undefined)
+              preparedModelBaseJson += `,"stop":${JSON.stringify(stop)}`;
+            if (temperature !== undefined)
+              preparedModelBaseJson += `,"temperature":${floatNumberJson(
+                temperature
+              )}`;
+            if (top_p !== undefined)
+              preparedModelBaseJson += `,"top_p":${floatNumberJson(top_p)}`;
+            if (max_tokens !== undefined)
+              preparedModelBaseJson += `,"max_tokens":${max_tokens}`;
+            if (min_p !== undefined)
+              preparedModelBaseJson += `,"min_p":${floatNumberJson(min_p)}`;
+            if (provider !== undefined)
+              preparedModelBaseJson += `,"provider":${JSON.stringify(
+                provider
+              )}`;
+            if (reasoning !== undefined)
+              preparedModelBaseJson += `,"reasoning":${JSON.stringify(
+                reasoning
+              )}`;
+            if (repetition_penalty !== undefined)
+              preparedModelBaseJson += `,"repetition_penalty":${floatNumberJson(
+                repetition_penalty
+              )}`;
+            if (top_a !== undefined)
+              preparedModelBaseJson += `,"top_a":${floatNumberJson(top_a)}`;
+            if (top_k !== undefined)
+              preparedModelBaseJson += `,"top_k":${top_k}`;
+            if (verbosity !== undefined)
+              preparedModelBaseJson += `,"verbosity":"${verbosity}"`;
+            preparedModelBaseJson += `,"weight":{"type":"${weight.type}"`;
+            if (weight.type === "static") {
+              preparedModelBaseJson += `,"weight":${floatNumberJson(
+                weight.weight
+              )}`;
+            } else if (weight.type === "training_table") {
+              preparedModelBaseJson += `,"base_weight":${floatNumberJson(
+                weight.base_weight
+              )}`;
+              preparedModelBaseJson += `,"min_weight":${floatNumberJson(
+                weight.min_weight
+              )}`;
+              preparedModelBaseJson += `,"max_weight":${floatNumberJson(
+                weight.max_weight
+              )}`;
+            }
+            preparedModelBaseJson += "}}";
+            const name = await XxHash3_128Base62Id(preparedModelBaseJson);
             return name;
           }
 
@@ -2850,5 +2885,15 @@ function XxHash3_128HasherFinishBase62(
   const hashHex = hasher.digest("hex");
   const hashBigInt = BigInt(`0x${hashHex}`);
   const hashB62 = toBase62(hashBigInt);
-  return hashB62.padStart(22, "0");
+  const paddedHashB62 = hashB62.padStart(22, "0");
+  console.log(paddedHashB62);
+  return paddedHashB62;
+}
+
+function floatNumberJson(value: number): string {
+  if (Number.isInteger(value)) {
+    return value.toFixed(1);
+  } else {
+    return value.toString();
+  }
 }
