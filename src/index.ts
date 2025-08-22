@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { APIPromise } from "openai/core";
 import { Stream } from "openai/streaming";
 import OpenAIChatCompletions from "openai/resources/chat/completions";
-import { createXXHash128, xxhash128 } from "hash-wasm";
+import { createXXHash128, IHasher, xxhash128 } from "hash-wasm";
 
 export namespace ObjectiveAI {
   export namespace Chat {
@@ -1006,7 +1006,7 @@ export namespace ObjectiveAI {
             models.sort(({ name: a }, { name: b }) => (a < b ? -1 : 1));
 
             // initialize hasher
-            const hasher = await XxHash3_128Hasher();
+            const hasher = await HasherStart();
 
             // prepare weight + add weight to hasher
             const weight = (() => {
@@ -1033,7 +1033,7 @@ export namespace ObjectiveAI {
 
             // the name is the hash as base62
             // prepadded with zeroes to ensure 22 characters
-            const name = XxHash3_128HasherFinishBase62(hasher);
+            const name = HasherFinish(hasher);
 
             return {
               name,
@@ -1056,7 +1056,7 @@ export namespace ObjectiveAI {
             modelNames.sort((a, b) => (a < b ? -1 : 1));
 
             // initialize hasher
-            const hasher = await XxHash3_128Hasher();
+            const hasher = await HasherStart();
 
             // prepare weight + add weight to hasher
             const weight = (() => {
@@ -1081,7 +1081,7 @@ export namespace ObjectiveAI {
 
             // the name is the hash as base62
             // prepadded with zeroes to ensure 22 characters
-            return XxHash3_128HasherFinishBase62(hasher);
+            return HasherFinish(hasher);
           }
 
           export type Weight =
@@ -1468,8 +1468,9 @@ export namespace ObjectiveAI {
               )}`;
             }
             preparedModelBaseJson += "}}";
-            const name = await XxHash3_128Base62Id(preparedModelBaseJson);
-            return name;
+            const hasher = await HasherStart();
+            hasher.update(preparedModelBaseJson);
+            return HasherFinish(hasher);
           }
 
           export type Mode =
@@ -2850,23 +2851,19 @@ export namespace ObjectiveAI {
   }
 }
 
-let _hasher: Promise<Awaited<ReturnType<typeof createXXHash128>>> | null = null;
-async function XxHash3_128Hasher(): Promise<
-  Awaited<ReturnType<typeof createXXHash128>>
-> {
-  const hasher = await (_hasher ??= createXXHash128(0, 0));
+const hasherPool: IHasher[] = [];
+
+async function HasherStart(): Promise<IHasher> {
+  let hasher = hasherPool.pop();
+  if (!hasher) {
+    hasher = await createXXHash128(0, 0);
+  }
   hasher.init();
   return hasher;
 }
 
-// returns a 22-character alphanumeric string that is a hash of the input
-async function XxHash3_128Base62Id(input: string): Promise<string> {
-  const hasher = await XxHash3_128Hasher();
-  hasher.update(input);
-  return XxHash3_128HasherFinishBase62(hasher);
-}
-
-function XxHash3_128HasherFinishBase62(
+// returns a 22-character alphanumeric string
+function HasherFinish(
   hasher: Awaited<ReturnType<typeof createXXHash128>>
 ): string {
   const toBase62 = (hash: bigint): string => {
@@ -2883,10 +2880,10 @@ function XxHash3_128HasherFinishBase62(
     return result;
   };
   const hashHex = hasher.digest("hex");
+  hasherPool.push(hasher);
   const hashBigInt = BigInt(`0x${hashHex}`);
   const hashB62 = toBase62(hashBigInt);
   const paddedHashB62 = hashB62.padStart(22, "0");
-  console.log(paddedHashB62);
   return paddedHashB62;
 }
 
