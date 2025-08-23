@@ -2710,6 +2710,130 @@ export namespace ObjectiveAI {
     }
   }
 
+  export namespace QueryModels {
+    export interface ListOptions {
+      count?: number;
+      offset?: number;
+      me?: boolean;
+      sort?:
+        | "created"
+        | "tokens"
+        | "completion_tokens"
+        | "prompt_tokens"
+        | "cost"
+        | "requests";
+    }
+
+    export async function list(
+      openai: OpenAI,
+      listOptions?: ListOptions,
+      options?: OpenAI.RequestOptions
+    ): Promise<{ data: string[] }> {
+      const response = await openai.models.list({
+        path: "/models/objectiveai",
+        query: listOptions,
+        ...options,
+      });
+      return response as unknown as { data: string[] };
+    }
+
+    export interface QueryModelWithMetadata
+      extends Chat.Completions.Query.QueryModel {
+      user_id: string; // user who created the query model
+      created: string; // RFC 3339 timestamp
+      chat_completion_tokens: number;
+      chat_prmopt_tokens: number;
+      chat_cost: number;
+      embedding_completion_tokens: number;
+      embedding_prompt_tokens: number;
+      embedding_cost: number;
+    }
+
+    export interface ModelBaseWithMetadata
+      extends Chat.Completions.Query.ModelBase {
+      user_id: string; // user who created the model
+      created: string; // RFC 3339 timestamp
+      chat_completion_tokens: number;
+      chat_prompt_tokens: number;
+      chat_cost: number;
+      embedding_completion_tokens: number;
+      embedding_prompt_tokens: number;
+      embedding_cost: number;
+    }
+
+    export interface QueryModelRetrieveOptions {
+      kind?: "query_model";
+      metadata?: false;
+      me?: boolean;
+    }
+    export interface QueryModelWithMetadataRetrieveOptions {
+      kind?: "query_model";
+      metadata: true;
+      me?: boolean;
+    }
+    export interface ModelBaseRetrieveOptions {
+      kind: "model";
+      metadata?: false;
+      me?: boolean;
+    }
+    export interface ModelBaseWithMetadataRetrieveOptions {
+      kind: "model";
+      metadata: true;
+      me?: boolean;
+    }
+    export type RetrieveOptions =
+      | QueryModelRetrieveOptions
+      | QueryModelWithMetadataRetrieveOptions
+      | ModelBaseRetrieveOptions
+      | ModelBaseWithMetadataRetrieveOptions;
+
+    export async function retrieve(
+      openai: OpenAI,
+      model: `objectiveai/${string}`,
+      retrieveOptions?: QueryModelRetrieveOptions,
+      options?: OpenAI.RequestOptions
+    ): Promise<Chat.Completions.Query.QueryModel>;
+    export async function retrieve(
+      openai: OpenAI,
+      model: `objectiveai/${string}`,
+      retrieveOptions: QueryModelWithMetadataRetrieveOptions,
+      options?: OpenAI.RequestOptions
+    ): Promise<QueryModelWithMetadata>;
+    export async function retrieve(
+      openai: OpenAI,
+      model: `objectiveai/${string}`,
+      retrieveOptions: ModelBaseRetrieveOptions,
+      options?: OpenAI.RequestOptions
+    ): Promise<Chat.Completions.Query.ModelBase>;
+    export async function retrieve(
+      openai: OpenAI,
+      model: `objectiveai/${string}`,
+      retrieveOptions: ModelBaseWithMetadataRetrieveOptions,
+      options?: OpenAI.RequestOptions
+    ): Promise<ModelBaseWithMetadata>;
+    export async function retrieve(
+      openai: OpenAI,
+      model: `objectiveai/${string}`,
+      retrieveOptions?: RetrieveOptions,
+      options?: OpenAI.RequestOptions
+    ): Promise<
+      | QueryModelWithMetadata
+      | Chat.Completions.Query.QueryModel
+      | ModelBaseWithMetadata
+      | Chat.Completions.Query.ModelBase
+    > {
+      const response = await openai.models.retrieve(model, {
+        query: retrieveOptions,
+        ...options,
+      });
+      return response as unknown as
+        | Chat.Completions.Query.QueryModel
+        | QueryModelWithMetadata
+        | Chat.Completions.Query.ModelBase
+        | ModelBaseWithMetadata;
+    }
+  }
+
   export namespace Models {
     export interface Model {
       id: string;
