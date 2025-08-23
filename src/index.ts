@@ -2742,7 +2742,7 @@ export namespace ObjectiveAI {
       user_id: string; // user who created the query model
       created: string; // RFC 3339 timestamp
       chat_completion_tokens: number;
-      chat_prmopt_tokens: number;
+      chat_prompt_tokens: number;
       chat_cost: number;
       embedding_completion_tokens: number;
       embedding_prompt_tokens: number;
