@@ -143,6 +143,47 @@ export namespace ObjectiveAI {
         >;
       }
 
+      export interface ListOptions {
+        count?: number;
+        offset?: number;
+      }
+
+      export interface ListResponse {
+        data: {
+          id: string;
+          created: string; // RFC 3339 timestamp
+        }[];
+      }
+
+      export async function list(
+        openai: OpenAI,
+        listOptions?: ListOptions,
+        options?: OpenAI.RequestOptions
+      ): Promise<ListResponse> {
+        const response = await openai.chat.completions.list({
+          query: {
+            kind: "chats",
+            ...listOptions,
+          },
+          ...options,
+        });
+        return response as unknown as ListResponse;
+      }
+
+      export interface RetrieveResponse {
+        request: ChatCompletionCreateParams;
+        response: ChatCompletion;
+      }
+
+      export async function retrieve(
+        openai: OpenAI,
+        id: string,
+        options?: OpenAI.RequestOptions
+      ): Promise<RetrieveResponse> {
+        const response = await openai.chat.completions.retrieve(id, options);
+        return response as unknown as RetrieveResponse;
+      }
+
       export interface ChatCompletionCreateParamsBase
         extends OpenAIChatCompletions.ChatCompletionCreateParamsBase {
         /**
@@ -871,6 +912,47 @@ export namespace ObjectiveAI {
       }
 
       export namespace Query {
+        export interface ListOptions {
+          count?: number;
+          offset?: number;
+        }
+
+        export interface ListResponse {
+          data: {
+            id: string;
+            created: string; // RFC 3339 timestamp
+          }[];
+        }
+
+        export async function list(
+          openai: OpenAI,
+          listOptions?: ListOptions,
+          options?: OpenAI.RequestOptions
+        ): Promise<ListResponse> {
+          const response = await openai.chat.completions.list({
+            query: {
+              kind: "queries",
+              ...listOptions,
+            },
+            ...options,
+          });
+          return response as unknown as ListResponse;
+        }
+
+        export interface RetrieveResponse {
+          request: ChatCompletionCreateParams;
+          response: ChatCompletion;
+        }
+
+        export async function retrieve(
+          openai: OpenAI,
+          id: string,
+          options?: OpenAI.RequestOptions
+        ): Promise<RetrieveResponse> {
+          const response = await openai.chat.completions.retrieve(id, options);
+          return response as unknown as RetrieveResponse;
+        }
+
         export interface ChatCompletionCreateParamsBase
           extends Omit<
             Chat.Completions.ChatCompletionCreateParamsBase,
