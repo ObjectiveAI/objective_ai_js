@@ -2042,15 +2042,21 @@ export namespace ObjectiveAI {
           export interface Choice
             extends Chat.Completions.ChatCompletion.Choice {
             /**
-             * The 'id' of the response choice.
+             * The id of the content of the response choice.
+             * Each choice with the same content will have the same `generate_id`.
+             * Only choices created by 'generate' mode will have this field.
+             */
+            generate_id: string | null;
+            /**
+             * The id of the response choice with regards to confidence.
              * Each response choice with the same 'id' is treated as the same
              * with regards to confidence.
              */
-            id: string | null;
+            confidence_id: string | null;
             /**
              * The weight of this particular response choice.
              */
-            weight: number | null;
+            confidence_weight: number | null;
             /**
              * The confidence of this response choice, and all other response
              * choices with the same 'id'.
