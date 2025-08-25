@@ -2741,6 +2741,7 @@ export namespace ObjectiveAI {
       extends Chat.Completions.Query.QueryModel {
       user_id: string; // user who created the query model
       created: string; // RFC 3339 timestamp
+      requests: number;
       chat_completion_tokens: number;
       chat_prompt_tokens: number;
       chat_cost: number;
@@ -2753,6 +2754,7 @@ export namespace ObjectiveAI {
       extends Chat.Completions.Query.ModelBase {
       user_id: string; // user who created the model
       created: string; // RFC 3339 timestamp
+      requests: number;
       chat_completion_tokens: number;
       chat_prompt_tokens: number;
       chat_cost: number;
