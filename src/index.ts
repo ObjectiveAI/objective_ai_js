@@ -2147,17 +2147,38 @@ export namespace ObjectiveAI {
 
         export type ResponseFormat =
           | {
-              tool: "statistical_summary";
-              think: boolean;
+              tool: "number_query";
             }
           | {
-              tool: "weighted_average_choice";
-              model: Embeddings.Model;
+              tool: "multiple_choice_query";
+              choices: string[];
+            }
+          | {
+              tool: "weighted_average_choice_query";
+              embeddings_model: Embeddings.Model;
             }
           | ({
-              tool: "weighted_average_choice";
-              model: Embeddings.Model;
+              tool: "weighted_average_choice_query";
+              embeddings_model: Embeddings.Model;
             } & OpenAI.ChatCompletionCreateParams["response_format"]);
+
+        export interface NumberQueryContent {
+          median: number;
+          mean: number;
+          standard_deviation: number;
+          mode: number | number[];
+        }
+
+        export interface MultipleChoiceQueryContent {
+          [choice: string]: number;
+        }
+
+        export interface WeightedAverageChoiceQueryContent {
+          response: string;
+          average_similarity: {
+            [generate_id: string]: number;
+          };
+        }
 
         /**
          * Represents a streamed chunk of a chat completion response returned by the model,
