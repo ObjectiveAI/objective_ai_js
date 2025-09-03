@@ -3082,6 +3082,16 @@ export namespace ObjectiveAI {
     }
   }
 
+  export namespace Credits {
+    export async function get(
+      openai: OpenAI,
+      options?: OpenAI.RequestOptions
+    ): Promise<number> {
+      const response = await openai.get("/auth/credits", options);
+      return response as number;
+    }
+  }
+
   function merge<T extends {}>(
     a: T,
     b: T,
