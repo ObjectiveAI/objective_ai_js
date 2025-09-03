@@ -3027,6 +3027,61 @@ export namespace ObjectiveAI {
     }
   }
 
+  export interface Key {
+    api_key: string;
+    created: string; // RFC 3339 timestamp
+    expires: string | null; // RFC 3339 timestamp
+    disabled: string | null; // RFC 3339 timestamp
+    name: string;
+    description: string | null;
+  }
+
+  export interface KeyWithCost extends Key {
+    cost: number;
+  }
+
+  export namespace Key {
+    export async function list(
+      openai: OpenAI,
+      options?: OpenAI.RequestOptions
+    ): Promise<{ data: KeyWithCost[] }> {
+      const response = await openai.get("/auth/keys", options);
+      return response as { data: KeyWithCost[] };
+    }
+
+    export async function create(
+      openai: OpenAI,
+      name: string,
+      expires?: Date | null,
+      description?: string | null,
+      options?: OpenAI.RequestOptions
+    ): Promise<Key> {
+      const response = await openai.post("/auth/keys", {
+        body: {
+          name,
+          expires,
+          description,
+        },
+        ...options,
+      });
+      return response as Key;
+    }
+
+    export async function disable(
+      openai: OpenAI,
+      key: string,
+      options?: OpenAI.RequestOptions
+    ): Promise<Key> {
+      const response = await openai.delete("/auth/keys", {
+        body: {
+          api_key: key,
+        },
+        ...options,
+      });
+      return response as Key;
+    }
+  }
+
   function merge<T extends {}>(
     a: T,
     b: T,
