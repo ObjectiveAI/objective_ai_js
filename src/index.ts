@@ -1847,7 +1847,7 @@ export namespace ObjectiveAI {
              * Each response choice with the same 'id' is treated as the same
              * with regards to confidence.
              */
-            confidence_id?: string;
+            confidence_id?: string | Record<string, number>;
             /**
              * The weight of this particular response choice.
              */
@@ -2085,7 +2085,7 @@ export namespace ObjectiveAI {
              * Each response choice with the same 'id' is treated as the same
              * with regards to confidence.
              */
-            confidence_id: string | null;
+            confidence_id: string | Record<string, number> | null;
             /**
              * The weight of this particular response choice.
              */
