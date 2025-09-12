@@ -1206,6 +1206,12 @@ export namespace ObjectiveAI {
            */
           mode: ModelBase.Mode;
           /**
+           * For select logprobs mode only.
+           * Number between 0 and 20.
+           * The maximum number of choices that the select model can vote for.
+           */
+          select_top_logprobs?: number;
+          /**
            * The weight assigned to the model.
            */
           weight: ModelBase.Weight;
@@ -1389,6 +1395,24 @@ export namespace ObjectiveAI {
                 return reasoning;
               }
             };
+            const prepareSelectTopLogprobs = (
+              mode: Mode,
+              select_top_logprobs: number | undefined
+            ): number | undefined => {
+              if (mode.includes("logprobs")) {
+                if (select_top_logprobs === 20) {
+                  return undefined;
+                } else {
+                  return select_top_logprobs;
+                }
+              } else {
+                if (select_top_logprobs === 0) {
+                  return undefined;
+                } else {
+                  return select_top_logprobs;
+                }
+              }
+            };
             const prepareProvider = (
               provider: ModelBase["provider"]
             ): ModelBase["provider"] | undefined => {
@@ -1443,6 +1467,10 @@ export namespace ObjectiveAI {
               }
             };
             const { id, mode, reasoning_effort } = modelBase;
+            const select_top_logprobs = prepareSelectTopLogprobs(
+              mode,
+              modelBase.select_top_logprobs
+            );
             const frequency_penalty = prepareNumber(
               modelBase.frequency_penalty,
               0.0
@@ -1487,6 +1515,9 @@ export namespace ObjectiveAI {
               }
             })();
             let preparedModelBaseJson = `{"id":"${id}","mode":"${mode}"`;
+            if (select_top_logprobs !== undefined) {
+              preparedModelBaseJson += `,"select_top_logprobs":${select_top_logprobs}`;
+            }
             if (frequency_penalty !== undefined)
               preparedModelBaseJson += `,"frequency_penalty":${floatNumberJson(
                 frequency_penalty
@@ -1558,7 +1589,9 @@ export namespace ObjectiveAI {
           export type Mode =
             | "generate"
             | "select_thinking"
-            | "select_non_thinking";
+            | "select_non_thinking"
+            | "select_thinking_logprobs"
+            | "select_non_thinking_logprobs";
 
           export type Weight =
             | {
