@@ -1876,7 +1876,7 @@ export namespace ObjectiveAI {
             /**
              * The index of the model, within the parent Query Model, which generated this response choice.
              */
-            model_index: number;
+            model_index: number | null;
             /**
              * Upstream metadata for the completion which generated this response choice.
              */
@@ -2114,7 +2114,7 @@ export namespace ObjectiveAI {
             /**
              * The index of the model, within the parent Query Model, which generated this response choice.
              */
-            model_index: number;
+            model_index: number | null;
             /**
              * Upstream metadata for the completion which generated this response choice.
              */
