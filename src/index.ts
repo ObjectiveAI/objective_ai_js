@@ -251,6 +251,10 @@ export namespace ObjectiveAI {
          * Lower values produce more concise responses, while higher values produce more detailed and comprehensive responses.
          */
         verbosity?: "low" | "medium" | "high";
+        /**
+         * Fallback models. Will be tried in order if the first one is rate limited.
+         */
+        models?: string[];
       }
 
       export interface ChatCompletionCreateParamsStreaming
@@ -2187,6 +2191,30 @@ export namespace ObjectiveAI {
               choices: string[];
             }
           | {
+              tool: "multiple_choice_options_query";
+              extractor: Omit<
+                Chat.Completions.ChatCompletionCreateParams,
+                | "messages"
+                | "audio"
+                | "metadata"
+                | "modalities"
+                | "n"
+                | "parallel_tool_calls"
+                | "response_format"
+                | "seed"
+                | "stop"
+                | "store"
+                | "stream"
+                | "stream_options"
+                | "tool_choice"
+                | "tools"
+                | "user"
+                | "web_search_options"
+                | "plugins"
+                | "usage"
+              >;
+            }
+          | {
               tool: "weighted_average_choice_query";
               embeddings_model: Embeddings.Model;
             }
@@ -2401,7 +2429,7 @@ export namespace ObjectiveAI {
               /**
                * The upstream Query used to generate this response choice.
                */
-              reasoning?: Query.ChatCompletionChunk;
+              reasoning?: Delta.Reasoning;
               /**
                * The role of the author of this message.
                */
@@ -2418,7 +2446,7 @@ export namespace ObjectiveAI {
                 const [reasoning, reasoningChanged] = merge(
                   a.reasoning,
                   b.reasoning,
-                  Query.ChatCompletionChunk.merged
+                  Reasoning.merged
                 );
                 const [refusal, refusalChanged] = merge(
                   a.refusal,
@@ -2475,6 +2503,220 @@ export namespace ObjectiveAI {
                     : {}),
                 };
               }
+
+              export type Reasoning =
+                | Reasoning.CompletionChunk
+                | Reasoning.CompletionChunk[];
+
+              export namespace Reasoning {
+                export function merged(
+                  a: Reasoning,
+                  b: Reasoning
+                ): [Reasoning, boolean] {
+                  let merged: Reasoning | undefined = undefined;
+                  if (Array.isArray(a)) {
+                    if (Array.isArray(b)) {
+                      for (const item of b) {
+                        if (merged === undefined) {
+                          const existingIndex = a.findIndex(
+                            ({ index, type }) =>
+                              index === item.index && type === item.type
+                          );
+                          if (existingIndex === -1) {
+                            merged = [...a, item];
+                          } else if (item.type === "query") {
+                            const [mergedItem, itemChanged] =
+                              Reasoning.QueryCompletionChunk.merged(
+                                a[
+                                  existingIndex
+                                ] as Reasoning.QueryCompletionChunk,
+                                item
+                              );
+                            if (itemChanged) {
+                              merged = [...a];
+                              merged[existingIndex] = mergedItem;
+                            }
+                          } else if (item.type === "chat") {
+                            const [mergedItem, itemChanged] =
+                              Reasoning.ChatCompletionChunk.merged(
+                                a[
+                                  existingIndex
+                                ] as Reasoning.ChatCompletionChunk,
+                                item
+                              );
+                            if (itemChanged) {
+                              merged = [...a];
+                              merged[existingIndex] = mergedItem;
+                            }
+                          }
+                        } else if (Array.isArray(merged) /* always true */) {
+                          const existingIndex = merged.findIndex(
+                            ({ index, type }) =>
+                              index === item.index && type === item.type
+                          );
+                          if (existingIndex === -1) {
+                            merged.push(item);
+                          } else if (item.type === "query") {
+                            const [mergedItem, itemChanged] =
+                              Reasoning.QueryCompletionChunk.merged(
+                                merged[
+                                  existingIndex
+                                ] as Reasoning.QueryCompletionChunk,
+                                item
+                              );
+                            if (itemChanged) {
+                              merged[existingIndex] = mergedItem;
+                            }
+                          } else if (item.type === "chat") {
+                            const [mergedItem, itemChanged] =
+                              Reasoning.ChatCompletionChunk.merged(
+                                merged[
+                                  existingIndex
+                                ] as Reasoning.ChatCompletionChunk,
+                                item
+                              );
+                            if (itemChanged) {
+                              merged[existingIndex] = mergedItem;
+                            }
+                          }
+                        }
+                      }
+                    } else {
+                      const existingIndex = a.findIndex(
+                        ({ index, type }) =>
+                          index === b.index && type === b.type
+                      );
+                      if (existingIndex === -1) {
+                        merged = [...a, b];
+                      } else if (b.type === "query") {
+                        const [mergedItem, itemChanged] =
+                          Reasoning.QueryCompletionChunk.merged(
+                            a[existingIndex] as Reasoning.QueryCompletionChunk,
+                            b
+                          );
+                        if (itemChanged) {
+                          merged = [...a];
+                          merged[existingIndex] = mergedItem;
+                        }
+                      } else if (b.type === "chat") {
+                        const [mergedItem, itemChanged] =
+                          Reasoning.ChatCompletionChunk.merged(
+                            a[existingIndex] as Reasoning.ChatCompletionChunk,
+                            b
+                          );
+                        if (itemChanged) {
+                          merged = [...a];
+                          merged[existingIndex] = mergedItem;
+                        }
+                      }
+                    }
+                  } else {
+                    if (Array.isArray(b)) {
+                      merged = [a];
+                      for (const item of b) {
+                        const existingIndex = merged.findIndex(
+                          ({ index, type }) =>
+                            index === item.index && type === item.type
+                        );
+                        if (existingIndex === -1) {
+                          merged.push(item);
+                        } else if (item.type === "query") {
+                          const [mergedItem, itemChanged] =
+                            Reasoning.QueryCompletionChunk.merged(
+                              merged[
+                                existingIndex
+                              ] as Reasoning.QueryCompletionChunk,
+                              item
+                            );
+                          if (itemChanged) {
+                            merged[existingIndex] = mergedItem;
+                          }
+                        } else if (item.type === "chat") {
+                          const [mergedItem, itemChanged] =
+                            Reasoning.ChatCompletionChunk.merged(
+                              merged[
+                                existingIndex
+                              ] as Reasoning.ChatCompletionChunk,
+                              item
+                            );
+                          if (itemChanged) {
+                            merged[existingIndex] = mergedItem;
+                          }
+                        }
+                      }
+                    } else {
+                      if (a.index === b.index && a.type === b.type) {
+                        if (b.type === "query") {
+                          const [mergedItem, itemChanged] =
+                            Reasoning.QueryCompletionChunk.merged(
+                              a as Reasoning.QueryCompletionChunk,
+                              b
+                            );
+                          if (itemChanged) {
+                            merged = mergedItem;
+                          }
+                        } else if (b.type === "chat") {
+                          const [mergedItem, itemChanged] =
+                            Reasoning.ChatCompletionChunk.merged(
+                              a as Reasoning.ChatCompletionChunk,
+                              b
+                            );
+                          if (itemChanged) {
+                            merged = mergedItem;
+                          }
+                        }
+                      } else {
+                        merged = [a, b];
+                      }
+                    }
+                  }
+                  return merged ? [merged, true] : [a, false];
+                }
+
+                export type CompletionChunk =
+                  | QueryCompletionChunk
+                  | ChatCompletionChunk;
+
+                export interface QueryCompletionChunk
+                  extends Query.ChatCompletionChunk {
+                  index: number;
+                  type: "query";
+                }
+
+                export namespace QueryCompletionChunk {
+                  export function merged(
+                    a: QueryCompletionChunk,
+                    b: QueryCompletionChunk
+                  ): [QueryCompletionChunk, boolean] {
+                    const [merged, changed] = Query.ChatCompletionChunk.merged(
+                      a,
+                      b
+                    );
+                    return changed
+                      ? [{ type: a.type, index: a.index, ...merged }, true]
+                      : [a, false];
+                  }
+                }
+
+                export interface ChatCompletionChunk
+                  extends Chat.Completions.ChatCompletionChunk {
+                  index: number;
+                  type: "chat";
+                }
+
+                export namespace ChatCompletionChunk {
+                  export function merged(
+                    a: ChatCompletionChunk,
+                    b: ChatCompletionChunk
+                  ): [ChatCompletionChunk, boolean] {
+                    const [merged, changed] =
+                      Chat.Completions.ChatCompletionChunk.merged(a, b);
+                    return changed
+                      ? [{ type: a.type, index: a.index, ...merged }, true]
+                      : [a, false];
+                  }
+                }
+              }
             }
           }
         }
@@ -2509,7 +2751,28 @@ export namespace ObjectiveAI {
               /**
                * The upstream Query used to generate this response choice.
                */
-              reasoning: Query.ChatCompletion;
+              reasoning: Message.Reasoning;
+            }
+
+            export namespace Message {
+              export type Reasoning =
+                | Reasoning.Completion
+                | Reasoning.Completion[];
+
+              export namespace Reasoning {
+                export type Completion = QueryCompletion | ChatCompletion;
+
+                export interface QueryCompletion extends Query.ChatCompletion {
+                  index: number;
+                  type: "query";
+                }
+
+                export interface ChatCompletion
+                  extends Chat.Completions.ChatCompletion {
+                  index: number;
+                  type: "chat";
+                }
+              }
             }
           }
         }
