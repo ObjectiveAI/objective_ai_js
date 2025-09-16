@@ -2182,38 +2182,41 @@ export namespace ObjectiveAI {
           | ChatCompletionCreateParamsStreaming
           | ChatCompletionCreateParamsNonStreaming;
 
-        export type ResponseFormat =
-          | {
-              tool: "number_query";
-            }
-          | {
-              tool: "multiple_choice_query";
-              choices: string[];
-            }
-          | {
-              tool: "multiple_choice_options_query";
-              extractor: Omit<
-                Chat.Completions.ChatCompletionCreateParams,
-                | "messages"
-                | "audio"
-                | "metadata"
-                | "modalities"
-                | "n"
-                | "parallel_tool_calls"
-                | "response_format"
-                | "seed"
-                | "stop"
-                | "store"
-                | "stream"
-                | "stream_options"
-                | "tool_choice"
-                | "tools"
-                | "user"
-                | "web_search_options"
-                | "plugins"
-                | "usage"
-              >;
-            }
+        export interface ResponseFormatNumberQuery {
+          tool: "number_query";
+        }
+
+        export interface ResponseFormatMultipleChoiceQuery {
+          tool: "multiple_choice_query";
+          choices: string[];
+        }
+
+        export interface ResponseFormatMultipleChoiceOptionsQuery {
+          tool: "multiple_choice_options_query";
+          extractor: Omit<
+            Chat.Completions.ChatCompletionCreateParams,
+            | "messages"
+            | "audio"
+            | "metadata"
+            | "modalities"
+            | "n"
+            | "parallel_tool_calls"
+            | "response_format"
+            | "seed"
+            | "stop"
+            | "store"
+            | "stream"
+            | "stream_options"
+            | "tool_choice"
+            | "tools"
+            | "user"
+            | "web_search_options"
+            | "plugins"
+            | "usage"
+          >;
+        }
+
+        export type ResponseFormatWeightedAverageChoiceQuery =
           | {
               tool: "weighted_average_choice_query";
               embeddings_model: Embeddings.Model;
@@ -2222,6 +2225,12 @@ export namespace ObjectiveAI {
               tool: "weighted_average_choice_query";
               embeddings_model: Embeddings.Model;
             } & OpenAI.ChatCompletionCreateParams["response_format"]);
+
+        export type ResponseFormat =
+          | ResponseFormatNumberQuery
+          | ResponseFormatMultipleChoiceQuery
+          | ResponseFormatMultipleChoiceOptionsQuery
+          | ResponseFormatWeightedAverageChoiceQuery;
 
         export interface NumberQueryContent {
           median: number;
