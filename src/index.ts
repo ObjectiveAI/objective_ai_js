@@ -3248,6 +3248,14 @@ export namespace ObjectiveAI {
         | Chat.Completions.Query.ModelBase
         | ModelBaseWithMetadata;
     }
+
+    export async function count(
+      openai: OpenAI,
+      options?: OpenAI.RequestOptions
+    ): Promise<{ count: number }> {
+      const response = await openai.get("/models/objectiveai/count", options);
+      return response as { count: number };
+    }
   }
 
   export namespace Models {
@@ -3394,6 +3402,30 @@ export namespace ObjectiveAI {
     ): Promise<number> {
       const response = await openai.get("/auth/credits", options);
       return response as number;
+    }
+  }
+
+  export interface Metadata {
+    query_requests: number;
+    query_completion_tokens: number;
+    query_prompt_tokens: number;
+    query_cost: number;
+    chat_requests: number;
+    chat_completion_tokens: number;
+    chat_prompt_tokens: number;
+    chat_cost: number;
+    embedding_completion_tokens: number;
+    embedding_prompt_tokens: number;
+    embedding_cost: number;
+  }
+
+  export namespace Metadata {
+    export async function get(
+      openai: OpenAI,
+      options?: OpenAI.RequestOptions
+    ): Promise<Metadata> {
+      const response = await openai.get("/metadata", options);
+      return response as Metadata;
     }
   }
 
