@@ -3136,6 +3136,8 @@ export namespace ObjectiveAI {
         | "prompt_tokens"
         | "cost"
         | "requests";
+      from?: string; // RFC 3339 timestamp
+      to?: string; // RFC 3339 timestamp
     }
 
     export async function list(
@@ -3181,21 +3183,29 @@ export namespace ObjectiveAI {
       kind?: "query_model";
       metadata?: false;
       me?: boolean;
+      from?: string; // RFC 3339 timestamp
+      to?: string; // RFC 3339 timestamp
     }
     export interface QueryModelWithMetadataRetrieveOptions {
       kind?: "query_model";
       metadata: true;
       me?: boolean;
+      from?: string; // RFC 3339 timestamp
+      to?: string; // RFC 3339 timestamp
     }
     export interface ModelBaseRetrieveOptions {
       kind: "model";
       metadata?: false;
       me?: boolean;
+      from?: string; // RFC 3339 timestamp
+      to?: string; // RFC 3339 timestamp
     }
     export interface ModelBaseWithMetadataRetrieveOptions {
       kind: "model";
       metadata: true;
       me?: boolean;
+      from?: string; // RFC 3339 timestamp
+      to?: string; // RFC 3339 timestamp
     }
     export type RetrieveOptions =
       | QueryModelRetrieveOptions
