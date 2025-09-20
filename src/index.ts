@@ -2193,27 +2193,8 @@ export namespace ObjectiveAI {
 
         export interface ResponseFormatMultipleChoiceOptionsQuery {
           tool: "multiple_choice_options_query";
-          extractor: Omit<
-            Chat.Completions.ChatCompletionCreateParams,
-            | "messages"
-            | "audio"
-            | "metadata"
-            | "modalities"
-            | "n"
-            | "parallel_tool_calls"
-            | "response_format"
-            | "seed"
-            | "stop"
-            | "store"
-            | "stream"
-            | "stream_options"
-            | "tool_choice"
-            | "tools"
-            | "user"
-            | "web_search_options"
-            | "plugins"
-            | "usage"
-          >;
+          min_items: number;
+          max_items: number;
         }
 
         export type ResponseFormatWeightedAverageChoiceQuery =
