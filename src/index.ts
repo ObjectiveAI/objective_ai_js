@@ -3091,7 +3091,7 @@ export namespace ObjectiveAI {
                           );
                           if (existingIndex === -1) {
                             merged = [...a, item];
-                          } else if (item.type === "query") {
+                          } else if (item.type === "query_tool") {
                             const [mergedItem, itemChanged] =
                               Reasoning.QueryToolCompletionChunk.merged(
                                 a[
@@ -3123,7 +3123,7 @@ export namespace ObjectiveAI {
                           );
                           if (existingIndex === -1) {
                             merged.push(item);
-                          } else if (item.type === "query") {
+                          } else if (item.type === "query_tool") {
                             const [mergedItem, itemChanged] =
                               Reasoning.QueryToolCompletionChunk.merged(
                                 merged[
@@ -3155,7 +3155,7 @@ export namespace ObjectiveAI {
                       );
                       if (existingIndex === -1) {
                         merged = [...a, b];
-                      } else if (b.type === "query") {
+                      } else if (b.type === "query_tool") {
                         const [mergedItem, itemChanged] =
                           Reasoning.QueryToolCompletionChunk.merged(
                             a[
@@ -3189,7 +3189,7 @@ export namespace ObjectiveAI {
                         );
                         if (existingIndex === -1) {
                           merged.push(item);
-                        } else if (item.type === "query") {
+                        } else if (item.type === "query_tool") {
                           const [mergedItem, itemChanged] =
                             Reasoning.QueryToolCompletionChunk.merged(
                               merged[
@@ -3215,7 +3215,7 @@ export namespace ObjectiveAI {
                       }
                     } else {
                       if (a.index === b.index && a.type === b.type) {
-                        if (b.type === "query") {
+                        if (b.type === "query_tool") {
                           const [mergedItem, itemChanged] =
                             Reasoning.QueryToolCompletionChunk.merged(
                               a as Reasoning.QueryToolCompletionChunk,
@@ -3249,7 +3249,7 @@ export namespace ObjectiveAI {
                 export interface QueryToolCompletionChunk
                   extends Query.ChatCompletionChunk {
                   index: number;
-                  type: "query";
+                  type: "query_tool";
                   tool_call_id: string;
                   error?: ObjectiveAI.Error;
                 }
@@ -3350,7 +3350,7 @@ export namespace ObjectiveAI {
 
                 export interface QueryCompletion extends Query.ChatCompletion {
                   index: number;
-                  type: "query";
+                  type: "query_tool";
                   tool_call_id: string;
                   error?: ObjectiveAI.Error;
                 }
