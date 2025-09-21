@@ -39,85 +39,49 @@ export namespace ObjectiveAI {
       ): APIPromise<QueryTool.ChatCompletion>;
       export function create(
         openai: OpenAI,
-        body:
-          | ChatCompletionCreateParamsStreaming
-          | Query.ChatCompletionCreateParamsStreaming,
+        body: QueryChat.ChatCompletionCreateParamsStreaming,
         options?: OpenAI.RequestOptions
-      ): APIPromise<
-        | Stream<ChatCompletionChunk | Error>
-        | Stream<Query.ChatCompletionChunk | Error>
-      >;
+      ): APIPromise<Stream<QueryChat.ChatCompletionChunk | Error>>;
       export function create(
         openai: OpenAI,
-        body:
-          | ChatCompletionCreateParamsStreaming
-          | QueryTool.ChatCompletionCreateParamsStreaming,
+        body: QueryChat.ChatCompletionCreateParamsNonStreaming,
         options?: OpenAI.RequestOptions
-      ): APIPromise<
-        | Stream<ChatCompletionChunk | Error>
-        | Stream<QueryTool.ChatCompletionChunk | Error>
-      >;
-      export function create(
-        openai: OpenAI,
-        body:
-          | Query.ChatCompletionCreateParamsStreaming
-          | QueryTool.ChatCompletionCreateParamsStreaming,
-        options?: OpenAI.RequestOptions
-      ): APIPromise<
-        | Stream<Query.ChatCompletionChunk | Error>
-        | Stream<QueryTool.ChatCompletionChunk | Error>
-      >;
+      ): APIPromise<QueryChat.ChatCompletion>;
       export function create(
         openai: OpenAI,
         body:
           | ChatCompletionCreateParamsStreaming
           | Query.ChatCompletionCreateParamsStreaming
-          | QueryTool.ChatCompletionCreateParamsStreaming,
+          | QueryTool.ChatCompletionCreateParamsStreaming
+          | QueryChat.ChatCompletionCreateParamsStreaming,
         options?: OpenAI.RequestOptions
       ): APIPromise<
         | Stream<ChatCompletionChunk | Error>
         | Stream<Query.ChatCompletionChunk | Error>
         | Stream<QueryTool.ChatCompletionChunk | Error>
+        | Stream<QueryChat.ChatCompletionChunk | Error>
       >;
       export function create(
         openai: OpenAI,
         body:
           | ChatCompletionCreateParamsNonStreaming
-          | Query.ChatCompletionCreateParamsNonStreaming,
-        options?: OpenAI.RequestOptions
-      ): APIPromise<ChatCompletion | Query.ChatCompletion>;
-      export function create(
-        openai: OpenAI,
-        body:
-          | ChatCompletionCreateParamsNonStreaming
-          | QueryTool.ChatCompletionCreateParamsNonStreaming,
+          | Query.ChatCompletionCreateParamsNonStreaming
+          | QueryTool.ChatCompletionCreateParamsNonStreaming
+          | QueryChat.ChatCompletionCreateParamsNonStreaming,
         options?: OpenAI.RequestOptions
       ): APIPromise<
-        ChatCompletion | Query.ChatCompletion | QueryTool.ChatCompletion
-      >;
-      export function create(
-        openai: OpenAI,
-        body:
-          | Query.ChatCompletionCreateParamsNonStreaming
-          | QueryTool.ChatCompletionCreateParamsNonStreaming,
-        options?: OpenAI.RequestOptions
-      ): APIPromise<Query.ChatCompletion | QueryTool.ChatCompletion>;
-      export function create(
-        openai: OpenAI,
-        body:
-          | ChatCompletionCreateParamsNonStreaming
-          | Query.ChatCompletionCreateParamsNonStreaming
-          | QueryTool.ChatCompletionCreateParamsNonStreaming,
-        options?: OpenAI.RequestOptions
-      ): APIPromise<
-        ChatCompletion | Query.ChatCompletion | QueryTool.ChatCompletion
+        | ChatCompletion
+        | Query.ChatCompletion
+        | QueryTool.ChatCompletion
+        | QueryChat.ChatCompletion
       >;
       export function create(
         openai: OpenAI,
         body:
           | ChatCompletionCreateParams
           | Query.ChatCompletionCreateParams
-          | QueryTool.ChatCompletionCreateParams,
+          | QueryTool.ChatCompletionCreateParams
+          | QueryChat.ChatCompletionCreateParams,
         options?: OpenAI.RequestOptions
       ): APIPromise<
         | ChatCompletion
@@ -126,6 +90,8 @@ export namespace ObjectiveAI {
         | Stream<Query.ChatCompletionChunk | Error>
         | QueryTool.ChatCompletion
         | Stream<QueryTool.ChatCompletionChunk | Error>
+        | QueryChat.ChatCompletion
+        | Stream<QueryChat.ChatCompletionChunk | Error>
       > {
         return openai.chat.completions.create(
           body as Omit<typeof body, "model" | "response_format"> & {
@@ -140,6 +106,8 @@ export namespace ObjectiveAI {
           | Stream<Query.ChatCompletionChunk | Error>
           | QueryTool.ChatCompletion
           | Stream<QueryTool.ChatCompletionChunk | Error>
+          | QueryChat.ChatCompletion
+          | Stream<QueryChat.ChatCompletionChunk | Error>
         >;
       }
 
@@ -1870,7 +1838,7 @@ export namespace ObjectiveAI {
              * An error encountered while generating this response choice.
              * If an error occurs, finish_reason will also be 'error'.
              */
-            error?: Error;
+            error?: ObjectiveAI.Error;
             /**
              * The name of the model which generated this response choice.
              * A unique hash of the model and its parameters.
@@ -2108,7 +2076,7 @@ export namespace ObjectiveAI {
              * An error encountered while generating this response choice.
              * If an error occurs, finish_reason will also be 'error'.
              */
-            error?: Error;
+            error?: ObjectiveAI.Error;
             /**
              * The name of the model which generated this response choice.
              * A unique hash of the model and its parameters.
@@ -2761,6 +2729,637 @@ export namespace ObjectiveAI {
                   extends Chat.Completions.ChatCompletion {
                   index: number;
                   type: "chat";
+                }
+              }
+            }
+          }
+        }
+      }
+
+      export namespace QueryChat {
+        export interface QueryToolParams
+          extends Omit<
+            Query.ChatCompletionCreateParamsBase,
+            | "messages"
+            | "response_format"
+            | "stream"
+            | "stream_options"
+            | "usage"
+          > {}
+
+        export interface ChatCompletionCreateParamsBase
+          extends Omit<
+            Chat.Completions.ChatCompletionCreateParamsBase,
+            | "audio"
+            | "metadata"
+            | "n"
+            | "store"
+            | "tool_choice"
+            | "tools"
+            | "user"
+            | "web_search_options"
+            | "plugins"
+          > {
+          /**
+           * Configuration for the Number Query tool.
+           */
+          number_query: QueryToolParams;
+          /**
+           * Configuration for the Multiple Choice Query tool.
+           */
+          multiple_choice_query: QueryToolParams;
+          /**
+           * Configuration for the Multiple Choice Options Query tool.
+           */
+          multiple_choice_options_query: QueryToolParams;
+        }
+
+        export interface ChatCompletionCreateParamsStreaming
+          extends ChatCompletionCreateParamsBase {
+          /**
+           * If set to true, the model response data will be streamed to the client as it is
+           * generated using
+           * [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format).
+           * See the
+           * [Streaming section below](https://platform.openai.com/docs/api-reference/chat/streaming)
+           * for more information, along with the
+           * [streaming responses](https://platform.openai.com/docs/guides/streaming-responses)
+           * guide for more information on how to handle the streaming events.
+           */
+          stream: true;
+        }
+
+        export interface ChatCompletionCreateParamsNonStreaming
+          extends ChatCompletionCreateParamsBase {
+          /**
+           * If set to true, the model response data will be streamed to the client as it is
+           * generated using
+           * [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format).
+           * See the
+           * [Streaming section below](https://platform.openai.com/docs/api-reference/chat/streaming)
+           * for more information, along with the
+           * [streaming responses](https://platform.openai.com/docs/guides/streaming-responses)
+           * guide for more information on how to handle the streaming events.
+           */
+          stream: false;
+        }
+
+        export type ChatCompletionCreateParams =
+          | ChatCompletionCreateParamsStreaming
+          | ChatCompletionCreateParamsNonStreaming;
+
+        /**
+         * Represents a streamed chunk of a chat completion response returned by the model,
+         * based on the provided input.
+         * [Learn more](https://platform.openai.com/docs/guides/streaming-responses).
+         */
+        export interface ChatCompletionChunk
+          extends Omit<
+            Chat.Completions.ChatCompletionChunk,
+            "choices" | "provider"
+          > {
+          /**
+           * A list of chat completion choices. Can contain more than one elements if `n` is
+           * greater than 1. Can also be empty for the last chunk if you set
+           * `stream_options: {"include_usage": true}`.
+           */
+          choices: ChatCompletionChunk.Choice[];
+        }
+
+        export namespace ChatCompletionChunk {
+          export function merged(
+            a: ChatCompletionChunk,
+            b: ChatCompletionChunk
+          ): [ChatCompletionChunk, boolean] {
+            const id = a.id;
+            const [choices, choicesChanged] = Choice.mergedList(
+              a.choices,
+              b.choices
+            );
+            const created = a.created;
+            const model = a.model;
+            const object = a.object;
+            const [service_tier, service_tierChanged] = merge(
+              a.service_tier,
+              b.service_tier
+            );
+            const [system_fingerprint, system_fingerprintChanged] = merge(
+              a.system_fingerprint,
+              b.system_fingerprint
+            );
+            const [usage, usageChanged] = merge(a.usage, b.usage, Usage.merged);
+            if (
+              choicesChanged ||
+              service_tierChanged ||
+              system_fingerprintChanged ||
+              usageChanged
+            ) {
+              return [
+                {
+                  id,
+                  choices,
+                  created,
+                  model,
+                  object,
+                  ...(service_tier !== undefined ? { service_tier } : {}),
+                  ...(system_fingerprint !== undefined
+                    ? { system_fingerprint }
+                    : {}),
+                  ...(usage !== undefined ? { usage } : {}),
+                },
+                true,
+              ];
+            } else {
+              return [a, false];
+            }
+          }
+          export function deepClone({
+            id,
+            choices,
+            created,
+            model,
+            object,
+            service_tier,
+            system_fingerprint,
+            usage,
+          }: ChatCompletionChunk): ChatCompletionChunk {
+            return {
+              id,
+              choices: Choice.deepCloneList(choices),
+              created,
+              model,
+              object,
+              ...(service_tier !== undefined ? { service_tier } : {}),
+              ...(system_fingerprint !== undefined
+                ? { system_fingerprint }
+                : {}),
+              ...(usage !== undefined ? { usage: Usage.deepClone(usage) } : {}),
+            };
+          }
+
+          export interface Choice
+            extends Omit<Chat.Completions.ChatCompletionChunk.Choice, "delta"> {
+            /**
+             * A chat completion delta generated by streamed model responses.
+             */
+            delta: Choice.Delta;
+          }
+
+          export namespace Choice {
+            export function merged(a: Choice, b: Choice): [Choice, boolean] {
+              const [delta, deltaChanged] = merge(
+                a.delta,
+                b.delta,
+                Delta.merged
+              );
+              const [finish_reason, finish_reasonChanged] = merge(
+                a.finish_reason,
+                b.finish_reason
+              );
+              const index = a.index;
+              const [logprobs, logprobsChanged] = merge(
+                a.logprobs,
+                b.logprobs,
+                Chat.Completions.ChatCompletionChunk.Choice.Logprobs.merged
+              );
+              if (deltaChanged || finish_reasonChanged || logprobsChanged) {
+                return [
+                  {
+                    delta,
+                    finish_reason,
+                    index,
+                    ...(logprobs !== undefined ? { logprobs } : {}),
+                  },
+                  true,
+                ];
+              } else {
+                return [a, false];
+              }
+            }
+            export function deepClone({
+              delta,
+              finish_reason,
+              index,
+              logprobs,
+            }: Choice): Choice {
+              return {
+                delta: Delta.deepClone(delta),
+                finish_reason,
+                index,
+                ...(logprobs !== undefined
+                  ? {
+                      logprobs: logprobs
+                        ? Chat.Completions.ChatCompletionChunk.Choice.Logprobs.deepClone(
+                            logprobs
+                          )
+                        : null,
+                    }
+                  : {}),
+              };
+            }
+            export function mergedList(
+              a: Choice[],
+              b: Choice[]
+            ): [Choice[], boolean] {
+              let merged: Choice[] | undefined = undefined;
+              for (const choice of b) {
+                const existingIndex = a.findIndex(
+                  ({ index }) => index === choice.index
+                );
+                if (existingIndex === -1) {
+                  if (merged === undefined) {
+                    merged = [...a, choice];
+                  } else {
+                    merged.push(choice);
+                  }
+                } else {
+                  const [mergedChoice, choiceChanged] = Choice.merged(
+                    a[existingIndex],
+                    choice
+                  );
+                  if (choiceChanged) {
+                    if (merged === undefined) {
+                      merged = [...a];
+                    }
+                    merged[existingIndex] = mergedChoice;
+                  }
+                }
+              }
+              return merged ? [merged, true] : [a, false];
+            }
+            export function deepCloneList(choices: Choice[]): Choice[] {
+              return choices.map(Choice.deepClone);
+            }
+
+            export interface Delta
+              extends OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta {
+              /**
+               * The upstream Query used to generate this response choice.
+               */
+              reasoning?: Delta.Reasoning;
+              /**
+               * The role of the author of this message.
+               */
+              role?: "assistant";
+            }
+
+            export namespace Delta {
+              export function merged(a: Delta, b: Delta): [Delta, boolean] {
+                const [content, contentChanged] = merge(
+                  a.content,
+                  b.content,
+                  mergedString
+                );
+                const [reasoning, reasoningChanged] = merge(
+                  a.reasoning,
+                  b.reasoning,
+                  Reasoning.merged
+                );
+                const [refusal, refusalChanged] = merge(
+                  a.refusal,
+                  b.refusal,
+                  mergedString
+                );
+                const [role, roleChanged] = merge(a.role, b.role);
+                const [tool_calls, tool_callsChanged] = merge(
+                  a.tool_calls,
+                  b.tool_calls,
+                  Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall
+                    .mergedList
+                );
+                if (
+                  contentChanged ||
+                  reasoningChanged ||
+                  refusalChanged ||
+                  roleChanged ||
+                  tool_callsChanged
+                ) {
+                  return [
+                    {
+                      ...(content !== undefined ? { content } : {}),
+                      ...(reasoning !== undefined ? { reasoning } : {}),
+                      ...(refusal !== undefined ? { refusal } : {}),
+                      ...(role !== undefined ? { role } : {}),
+                      ...(tool_calls !== undefined ? { tool_calls } : {}),
+                    },
+                    true,
+                  ];
+                } else {
+                  return [a, false];
+                }
+              }
+              export function deepClone({
+                content,
+                reasoning,
+                refusal,
+                role,
+                tool_calls,
+              }: Delta): Delta {
+                return {
+                  ...(content !== undefined ? { content } : {}),
+                  ...(reasoning !== undefined ? { reasoning } : {}),
+                  ...(refusal !== undefined ? { refusal } : {}),
+                  ...(role !== undefined ? { role } : {}),
+                  ...(tool_calls !== undefined
+                    ? {
+                        tool_calls:
+                          Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall.deepCloneList(
+                            tool_calls
+                          ),
+                      }
+                    : {}),
+                };
+              }
+
+              export type Reasoning =
+                | Reasoning.CompletionChunk
+                | Reasoning.CompletionChunk[];
+
+              export namespace Reasoning {
+                export function merged(
+                  a: Reasoning,
+                  b: Reasoning
+                ): [Reasoning, boolean] {
+                  let merged: Reasoning | undefined = undefined;
+                  if (Array.isArray(a)) {
+                    if (Array.isArray(b)) {
+                      for (const item of b) {
+                        if (merged === undefined) {
+                          const existingIndex = a.findIndex(
+                            ({ index, type }) =>
+                              index === item.index && type === item.type
+                          );
+                          if (existingIndex === -1) {
+                            merged = [...a, item];
+                          } else if (item.type === "query") {
+                            const [mergedItem, itemChanged] =
+                              Reasoning.QueryToolCompletionChunk.merged(
+                                a[
+                                  existingIndex
+                                ] as Reasoning.QueryToolCompletionChunk,
+                                item
+                              );
+                            if (itemChanged) {
+                              merged = [...a];
+                              merged[existingIndex] = mergedItem;
+                            }
+                          } else if (item.type === "chat") {
+                            const [mergedItem, itemChanged] =
+                              Reasoning.ChatCompletionChunk.merged(
+                                a[
+                                  existingIndex
+                                ] as Reasoning.ChatCompletionChunk,
+                                item
+                              );
+                            if (itemChanged) {
+                              merged = [...a];
+                              merged[existingIndex] = mergedItem;
+                            }
+                          }
+                        } else if (Array.isArray(merged) /* always true */) {
+                          const existingIndex = merged.findIndex(
+                            ({ index, type }) =>
+                              index === item.index && type === item.type
+                          );
+                          if (existingIndex === -1) {
+                            merged.push(item);
+                          } else if (item.type === "query") {
+                            const [mergedItem, itemChanged] =
+                              Reasoning.QueryToolCompletionChunk.merged(
+                                merged[
+                                  existingIndex
+                                ] as Reasoning.QueryToolCompletionChunk,
+                                item
+                              );
+                            if (itemChanged) {
+                              merged[existingIndex] = mergedItem;
+                            }
+                          } else if (item.type === "chat") {
+                            const [mergedItem, itemChanged] =
+                              Reasoning.ChatCompletionChunk.merged(
+                                merged[
+                                  existingIndex
+                                ] as Reasoning.ChatCompletionChunk,
+                                item
+                              );
+                            if (itemChanged) {
+                              merged[existingIndex] = mergedItem;
+                            }
+                          }
+                        }
+                      }
+                    } else {
+                      const existingIndex = a.findIndex(
+                        ({ index, type }) =>
+                          index === b.index && type === b.type
+                      );
+                      if (existingIndex === -1) {
+                        merged = [...a, b];
+                      } else if (b.type === "query") {
+                        const [mergedItem, itemChanged] =
+                          Reasoning.QueryToolCompletionChunk.merged(
+                            a[
+                              existingIndex
+                            ] as Reasoning.QueryToolCompletionChunk,
+                            b
+                          );
+                        if (itemChanged) {
+                          merged = [...a];
+                          merged[existingIndex] = mergedItem;
+                        }
+                      } else if (b.type === "chat") {
+                        const [mergedItem, itemChanged] =
+                          Reasoning.ChatCompletionChunk.merged(
+                            a[existingIndex] as Reasoning.ChatCompletionChunk,
+                            b
+                          );
+                        if (itemChanged) {
+                          merged = [...a];
+                          merged[existingIndex] = mergedItem;
+                        }
+                      }
+                    }
+                  } else {
+                    if (Array.isArray(b)) {
+                      merged = [a];
+                      for (const item of b) {
+                        const existingIndex = merged.findIndex(
+                          ({ index, type }) =>
+                            index === item.index && type === item.type
+                        );
+                        if (existingIndex === -1) {
+                          merged.push(item);
+                        } else if (item.type === "query") {
+                          const [mergedItem, itemChanged] =
+                            Reasoning.QueryToolCompletionChunk.merged(
+                              merged[
+                                existingIndex
+                              ] as Reasoning.QueryToolCompletionChunk,
+                              item
+                            );
+                          if (itemChanged) {
+                            merged[existingIndex] = mergedItem;
+                          }
+                        } else if (item.type === "chat") {
+                          const [mergedItem, itemChanged] =
+                            Reasoning.ChatCompletionChunk.merged(
+                              merged[
+                                existingIndex
+                              ] as Reasoning.ChatCompletionChunk,
+                              item
+                            );
+                          if (itemChanged) {
+                            merged[existingIndex] = mergedItem;
+                          }
+                        }
+                      }
+                    } else {
+                      if (a.index === b.index && a.type === b.type) {
+                        if (b.type === "query") {
+                          const [mergedItem, itemChanged] =
+                            Reasoning.QueryToolCompletionChunk.merged(
+                              a as Reasoning.QueryToolCompletionChunk,
+                              b
+                            );
+                          if (itemChanged) {
+                            merged = mergedItem;
+                          }
+                        } else if (b.type === "chat") {
+                          const [mergedItem, itemChanged] =
+                            Reasoning.ChatCompletionChunk.merged(
+                              a as Reasoning.ChatCompletionChunk,
+                              b
+                            );
+                          if (itemChanged) {
+                            merged = mergedItem;
+                          }
+                        }
+                      } else {
+                        merged = [a, b];
+                      }
+                    }
+                  }
+                  return merged ? [merged, true] : [a, false];
+                }
+
+                export type CompletionChunk =
+                  | QueryToolCompletionChunk
+                  | ChatCompletionChunk;
+
+                export interface QueryToolCompletionChunk
+                  extends Query.ChatCompletionChunk {
+                  index: number;
+                  type: "query";
+                  tool_call_id: string;
+                  error?: ObjectiveAI.Error;
+                }
+
+                export namespace QueryToolCompletionChunk {
+                  export function merged(
+                    a: QueryToolCompletionChunk,
+                    b: QueryToolCompletionChunk
+                  ): [QueryToolCompletionChunk, boolean] {
+                    const [merged, changed] = Query.ChatCompletionChunk.merged(
+                      a,
+                      b
+                    );
+                    const [error, errorChanged] = merge(a.error, b.error);
+                    return changed || errorChanged
+                      ? [
+                          {
+                            type: a.type,
+                            index: a.index,
+                            tool_call_id: a.tool_call_id,
+                            ...merged,
+                            error,
+                          },
+                          true,
+                        ]
+                      : [a, false];
+                  }
+                }
+
+                export interface ChatCompletionChunk
+                  extends Chat.Completions.ChatCompletionChunk {
+                  index: number;
+                  type: "chat";
+                  error?: ObjectiveAI.Error;
+                }
+
+                export namespace ChatCompletionChunk {
+                  export function merged(
+                    a: ChatCompletionChunk,
+                    b: ChatCompletionChunk
+                  ): [ChatCompletionChunk, boolean] {
+                    const [merged, changed] =
+                      Chat.Completions.ChatCompletionChunk.merged(a, b);
+                    const [error, errorChanged] = merge(a.error, b.error);
+                    return changed || errorChanged
+                      ? [
+                          { type: a.type, index: a.index, ...merged, error },
+                          true,
+                        ]
+                      : [a, false];
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        /**
+         * Represents a chat completion response returned by model, based on the provided
+         * input.
+         */
+        export interface ChatCompletion
+          extends Omit<
+            Chat.Completions.ChatCompletion,
+            "choices" | "provider"
+          > {
+          /**
+           * A list of chat completion choices. Can be more than one if `n` is greater
+           * than 1.
+           */
+          choices: ChatCompletion.Choice[];
+        }
+
+        export namespace ChatCompletion {
+          export interface Choice
+            extends Omit<Chat.Completions.ChatCompletion.Choice, "message"> {
+            /**
+             * A chat completion message generated by the model.
+             */
+            message: Choice.Message;
+          }
+
+          export namespace Choice {
+            export interface Message extends OpenAI.ChatCompletionMessage {
+              /**
+               * The upstream Query used to generate this response choice.
+               */
+              reasoning: Message.Reasoning;
+            }
+
+            export namespace Message {
+              export type Reasoning =
+                | Reasoning.Completion
+                | Reasoning.Completion[];
+
+              export namespace Reasoning {
+                export type Completion = QueryCompletion | ChatCompletion;
+
+                export interface QueryCompletion extends Query.ChatCompletion {
+                  index: number;
+                  type: "query";
+                  tool_call_id: string;
+                  error?: ObjectiveAI.Error;
+                }
+
+                export interface ChatCompletion
+                  extends Chat.Completions.ChatCompletion {
+                  index: number;
+                  type: "chat";
+                  error?: ObjectiveAI.Error;
                 }
               }
             }
