@@ -3346,9 +3346,10 @@ export namespace ObjectiveAI {
                 | Reasoning.Completion[];
 
               export namespace Reasoning {
-                export type Completion = QueryCompletion | ChatCompletion;
+                export type Completion = QueryToolCompletion | ChatCompletion;
 
-                export interface QueryCompletion extends Query.ChatCompletion {
+                export interface QueryToolCompletion
+                  extends QueryTool.ChatCompletion {
                   index: number;
                   type: "query_tool";
                   tool_call_id: string;
