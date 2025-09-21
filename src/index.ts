@@ -3247,7 +3247,7 @@ export namespace ObjectiveAI {
                   | ChatCompletionChunk;
 
                 export interface QueryToolCompletionChunk
-                  extends Query.ChatCompletionChunk {
+                  extends QueryTool.ChatCompletionChunk {
                   index: number;
                   type: "query_tool";
                   tool_call_id: string;
@@ -3259,10 +3259,8 @@ export namespace ObjectiveAI {
                     a: QueryToolCompletionChunk,
                     b: QueryToolCompletionChunk
                   ): [QueryToolCompletionChunk, boolean] {
-                    const [merged, changed] = Query.ChatCompletionChunk.merged(
-                      a,
-                      b
-                    );
+                    const [merged, changed] =
+                      QueryTool.ChatCompletionChunk.merged(a, b);
                     const [error, errorChanged] = merge(a.error, b.error);
                     return changed || errorChanged
                       ? [
