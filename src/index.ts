@@ -954,6 +954,7 @@ export namespace ObjectiveAI {
             | "top_k"
             | "verbosity"
             | "plugins"
+            | "models"
           > {
           /**
            * Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI offers a
@@ -2759,6 +2760,7 @@ export namespace ObjectiveAI {
             | "user"
             | "web_search_options"
             | "plugins"
+            | "models"
           > {
           /**
            * Configuration for the Number Query tool.
