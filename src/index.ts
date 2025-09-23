@@ -2732,7 +2732,7 @@ export namespace ObjectiveAI {
               /**
                * The upstream Query used to generate this response choice.
                */
-              reasoning: Message.Reasoning;
+              reasoning?: Message.Reasoning;
             }
 
             export namespace Message {
@@ -3381,7 +3381,7 @@ export namespace ObjectiveAI {
               /**
                * The upstream Query used to generate this response choice.
                */
-              reasoning: Message.Reasoning;
+              reasoning?: Message.Reasoning;
             }
 
             export namespace Message {
