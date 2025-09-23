@@ -2097,6 +2097,28 @@ export namespace ObjectiveAI {
       }
 
       export namespace QueryTool {
+        export interface RetrieveResponse {
+          request: ChatCompletionCreateParams;
+          response: ChatCompletion;
+        }
+
+        export async function retrieve(
+          openai: OpenAI,
+          id: string,
+          options?: OpenAI.RequestOptions
+        ): Promise<RetrieveResponse> {
+          const response = await openai.chat.completions.retrieve(id, options);
+          return response as unknown as RetrieveResponse;
+        }
+
+        export async function publish(
+          openai: OpenAI,
+          id: string,
+          options?: OpenAI.RequestOptions
+        ): Promise<void> {
+          await openai.post(`/chat/completions/${id}/publish`, options);
+        }
+
         export interface ChatCompletionCreateParamsBase
           extends Omit<
             Query.ChatCompletionCreateParamsBase,
@@ -2738,6 +2760,28 @@ export namespace ObjectiveAI {
       }
 
       export namespace QueryChat {
+        export interface RetrieveResponse {
+          request: ChatCompletionCreateParams;
+          response: ChatCompletion;
+        }
+
+        export async function retrieve(
+          openai: OpenAI,
+          id: string,
+          options?: OpenAI.RequestOptions
+        ): Promise<RetrieveResponse> {
+          const response = await openai.chat.completions.retrieve(id, options);
+          return response as unknown as RetrieveResponse;
+        }
+
+        export async function publish(
+          openai: OpenAI,
+          id: string,
+          options?: OpenAI.RequestOptions
+        ): Promise<void> {
+          await openai.post(`/chat/completions/${id}/publish`, options);
+        }
+
         export interface QueryToolParams
           extends Omit<
             Query.ChatCompletionCreateParamsBase,
