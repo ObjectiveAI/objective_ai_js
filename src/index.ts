@@ -2804,7 +2804,6 @@ export namespace ObjectiveAI {
             | "user"
             | "web_search_options"
             | "plugins"
-            | "models"
           > {
           /**
            * Configuration for the Number Query tool.
