@@ -1295,6 +1295,10 @@ export namespace ObjectiveAI {
            * Lower values produce more concise responses, while higher values produce more detailed and comprehensive responses.
            */
           verbosity?: "low" | "medium" | "high";
+          /**
+           * Fallback models. Will be tried in order if the first one is rate limited.
+           */
+          models?: string[];
         }
 
         export namespace ModelBase {
@@ -1439,6 +1443,15 @@ export namespace ObjectiveAI {
                 };
               }
             };
+            const prepareModels = (
+              models: string[] | undefined
+            ): string[] | undefined => {
+              if (models === undefined || models.length === 0) {
+                return undefined;
+              } else {
+                return models;
+              }
+            };
             const { id, mode, reasoning_effort } = modelBase;
             const select_top_logprobs = prepareSelectTopLogprobs(
               mode,
@@ -1487,6 +1500,7 @@ export namespace ObjectiveAI {
                   };
               }
             })();
+            const models = prepareModels(modelBase.models);
             let preparedModelBaseJson = `{"id":"${id}","mode":"${mode}"`;
             if (select_top_logprobs !== undefined) {
               preparedModelBaseJson += `,"select_top_logprobs":${select_top_logprobs}`;
@@ -1537,6 +1551,8 @@ export namespace ObjectiveAI {
               preparedModelBaseJson += `,"top_k":${top_k}`;
             if (verbosity !== undefined)
               preparedModelBaseJson += `,"verbosity":"${verbosity}"`;
+            if (models !== undefined)
+              preparedModelBaseJson += `,"models":${JSON.stringify(models)}`;
             preparedModelBaseJson += `,"weight":{"type":"${weight.type}"`;
             if (weight.type === "static") {
               preparedModelBaseJson += `,"weight":${floatNumberJson(
