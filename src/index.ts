@@ -327,7 +327,18 @@ export namespace ObjectiveAI {
            * Directly specifies the maximum number of tokens to use for reasoning.
            * [Learn more](https://openrouter.ai/docs/use-cases/reasoning-tokens)
            */
-          max_tokens: number;
+          max_tokens?: number;
+          /**
+           * Constrains effort on reasoning for
+           * [reasoning models](https://platform.openai.com/docs/guides/reasoning). Currently
+           * supported values are `low`, `medium`, and `high`. Reducing reasoning effort can
+           * result in faster responses and fewer tokens used on reasoning in a response.
+           */
+          reasoning_effort?: "low" | "medium" | "high";
+          /**
+           * Whether to enable or disable reasoning. Defaults to `true`.
+           */
+          enabled?: boolean;
         }
 
         /**
@@ -1366,10 +1377,21 @@ export namespace ObjectiveAI {
             const prepareReasoning = (
               reasoning: ModelBase["reasoning"]
             ): ModelBase["reasoning"] | undefined => {
-              if (reasoning === undefined || reasoning.max_tokens === 0) {
+              if (reasoning === undefined) {
                 return undefined;
+              }
+              const max_tokens =
+                reasoning.max_tokens === 0 ? undefined : reasoning.max_tokens;
+              const enabled =
+                reasoning.enabled === true ? undefined : reasoning.enabled;
+              if (max_tokens !== undefined && enabled !== undefined) {
+                return { max_tokens, enabled };
+              } else if (max_tokens !== undefined) {
+                return { max_tokens };
+              } else if (enabled !== undefined) {
+                return { enabled };
               } else {
-                return reasoning;
+                return undefined;
               }
             };
             const prepareSelectTopLogprobs = (
