@@ -2844,9 +2844,9 @@ export namespace ObjectiveAI {
             | "plugins"
           > {
           /**
-           * Configuration for the Number Query tool.
+           * Configuration for the Simple Query tool.
            */
-          number_query: QueryToolParams;
+          simple_query: QueryToolParams;
           /**
            * Configuration for the Multiple Choice Query tool.
            */
