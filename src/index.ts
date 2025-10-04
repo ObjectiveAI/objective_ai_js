@@ -441,7 +441,7 @@ export namespace Chat {
 
         export interface Choice {
           delta: Delta;
-          finish_reason?: FinishReason;
+          finish_reason: FinishReason | null;
           index: number;
           logprobs?: Logprobs;
         }
@@ -2761,244 +2761,6 @@ export namespace QueryChat {
   }
 }
 
-export interface QueryModelBase {
-  models: QueryModel.QueryLlmBase[];
-  weight: QueryModel.Weight;
-}
-
-export interface QueryModel {
-  name: string;
-  training_table_name?: string;
-  models: QueryModel.QueryLlm[];
-  weight: QueryModel.Weight;
-}
-
-export interface QueryModelWithMetadata extends QueryModel {
-  user_id: string;
-  created: string; // RFC 3339 timestamp
-  requests: number;
-  chat_completion_tokens: number;
-  chat_prompt_tokens: number;
-  chat_cost: number;
-  embedding_completion_tokens: number;
-  embedding_prompt_tokens: number;
-  embedding_cost: number;
-}
-
-export namespace QueryModel {
-  export type Weight = Weight.Static | Weight.TrainingTable;
-
-  export namespace Weight {
-    export interface Static {
-      type: "static";
-    }
-
-    export interface TrainingTable {
-      type: "training_table";
-      embeddings_model: string;
-      top: number;
-    }
-  }
-
-  export interface QueryLlmBase {
-    id: string;
-    mode: QueryLlm.Mode;
-    select_top_logprobs?: number | null;
-    frequency_penalty?: number | null;
-    logit_bias?: Record<string, number> | null;
-    max_completion_tokens?: number | null;
-    presence_penalty?: number | null;
-    reasoning_effort?: Chat.Completions.Request.ReasoningEffort | null;
-    stop?: Chat.Completions.Request.Stop | null;
-    temperature?: number | null;
-    top_p?: number | null;
-    max_tokens?: number | null;
-    min_p?: number | null;
-    provider?: Chat.Completions.Request.ProviderPreferences | null;
-    reasoning?: Chat.Completions.Request.Reasoning | null;
-    repetition_penalty?: number | null;
-    top_a?: number | null;
-    top_k?: number | null;
-    verbosity?: Chat.Completions.Request.Verbosity | null;
-    models?: string[] | null;
-    weight: QueryLlm.Weight;
-  }
-
-  export interface QueryLlmWithoutIndices extends QueryLlmBase {
-    name: string;
-    training_table_name?: string;
-  }
-
-  export interface QueryLlm extends QueryLlmWithoutIndices {
-    index: number;
-    training_table_index?: number;
-  }
-
-  export interface QueryLlmWithoutIndicesWithMetadata
-    extends QueryLlmWithoutIndices {
-    user_id: string;
-    created: string; // RFC 3339 timestamp
-    requests: number;
-    chat_completion_tokens: number;
-    chat_prompt_tokens: number;
-    chat_cost: number;
-    embedding_completion_tokens: number;
-    embedding_prompt_tokens: number;
-    embedding_cost: number;
-  }
-
-  export namespace QueryLlm {
-    export type Mode =
-      | "generate"
-      | "select_thinking"
-      | "select_non_thinking"
-      | "select_thinking_logprobs"
-      | "select_non_thinking_logprobs";
-
-    export type Weight = Weight.Static | Weight.TrainingTable;
-
-    export namespace Weight {
-      export interface Static {
-        type: "static";
-        weight: number;
-      }
-
-      export interface TrainingTable {
-        type: "training_table";
-        base_weight: number;
-        min_weight: number;
-        max_weight: number;
-      }
-    }
-
-    export async function retrieve(
-      openai: OpenAI,
-      model: string,
-      retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
-      options?: OpenAI.RequestOptions
-    ): Promise<QueryLlmWithoutIndices>;
-    export async function retrieve(
-      openai: OpenAI,
-      model: string,
-      retrieveOptions: Models.RetrieveOptionsWithMetadata,
-      options?: OpenAI.RequestOptions
-    ): Promise<QueryLlmWithoutIndicesWithMetadata>;
-    export async function retrieve(
-      openai: OpenAI,
-      model: string,
-      retrieveOptions?: Models.RetrieveOptions,
-      options?: OpenAI.RequestOptions
-    ): Promise<QueryLlmWithoutIndices | QueryLlmWithoutIndicesWithMetadata> {
-      const response = await openai.get(`/query_llms/${model}`, {
-        query: retrieveOptions,
-        ...options,
-      });
-      return response as
-        | QueryLlmWithoutIndices
-        | QueryLlmWithoutIndicesWithMetadata;
-    }
-
-    export async function retrieveValidate(
-      openai: OpenAI,
-      model: QueryLlmBase,
-      retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
-      options?: OpenAI.RequestOptions
-    ): Promise<QueryLlmWithoutIndices>;
-    export async function retrieveValidate(
-      openai: OpenAI,
-      model: QueryLlmBase,
-      retrieveOptions: Models.RetrieveOptionsWithMetadata,
-      options?: OpenAI.RequestOptions
-    ): Promise<QueryLlmWithoutIndicesWithMetadata>;
-    export async function retrieveValidate(
-      openai: OpenAI,
-      model: QueryLlmBase,
-      retrieveOptions?: Models.RetrieveOptions,
-      options?: OpenAI.RequestOptions
-    ): Promise<QueryLlmWithoutIndices | QueryLlmWithoutIndicesWithMetadata> {
-      const response = await openai.post("/query_llms", {
-        query: retrieveOptions,
-        body: model,
-        ...options,
-      });
-      return response as
-        | QueryLlmWithoutIndices
-        | QueryLlmWithoutIndicesWithMetadata;
-    }
-  }
-
-  export async function list(
-    openai: OpenAI,
-    listOptions?: Models.ListOptions,
-    options?: OpenAI.RequestOptions
-  ): Promise<{ data: string[] }> {
-    const response = await openai.get("/query_models", {
-      query: listOptions,
-      ...options,
-    });
-    return response as { data: string[] };
-  }
-
-  export async function count(
-    openai: OpenAI,
-    options?: OpenAI.RequestOptions
-  ): Promise<{ count: number }> {
-    const response = await openai.get("/query_models/count", options);
-    return response as { count: number };
-  }
-
-  export async function retrieve(
-    openai: OpenAI,
-    model: string,
-    retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
-    options?: OpenAI.RequestOptions
-  ): Promise<QueryModel>;
-  export async function retrieve(
-    openai: OpenAI,
-    model: string,
-    retrieveOptions: Models.RetrieveOptionsWithMetadata,
-    options?: OpenAI.RequestOptions
-  ): Promise<QueryModelWithMetadata>;
-  export async function retrieve(
-    openai: OpenAI,
-    model: string,
-    retrieveOptions?: Models.RetrieveOptions,
-    options?: OpenAI.RequestOptions
-  ): Promise<QueryModel | QueryModelWithMetadata> {
-    const response = await openai.get(`/query_models/${model}`, {
-      query: retrieveOptions,
-      ...options,
-    });
-    return response as QueryModel | QueryModelWithMetadata;
-  }
-
-  export async function retrieveValidate(
-    openai: OpenAI,
-    model: QueryModelBase,
-    retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
-    options?: OpenAI.RequestOptions
-  ): Promise<QueryModel>;
-  export async function retrieveValidate(
-    openai: OpenAI,
-    model: QueryModelBase,
-    retrieveOptions: Models.RetrieveOptionsWithMetadata,
-    options?: OpenAI.RequestOptions
-  ): Promise<QueryModelWithMetadata>;
-  export async function retrieveValidate(
-    openai: OpenAI,
-    model: QueryModelBase,
-    retrieveOptions?: Models.RetrieveOptions,
-    options?: OpenAI.RequestOptions
-  ): Promise<QueryModel | QueryModelWithMetadata> {
-    const response = await openai.post("/query_models", {
-      query: retrieveOptions,
-      body: model,
-      ...options,
-    });
-    return response as QueryModel | QueryModelWithMetadata;
-  }
-}
-
 export namespace Models {
   export interface Model {
     id: string;
@@ -3247,6 +3009,244 @@ export namespace Metadata {
   ): Promise<Metadata> {
     const response = await openai.get("/metadata", options);
     return response as Metadata;
+  }
+}
+
+export interface QueryModelBase {
+  models: QueryModel.QueryLlmBase[];
+  weight: QueryModel.Weight;
+}
+
+export interface QueryModel {
+  name: string;
+  training_table_name?: string;
+  models: QueryModel.QueryLlm[];
+  weight: QueryModel.Weight;
+}
+
+export interface QueryModelWithMetadata extends QueryModel {
+  user_id: string;
+  created: string; // RFC 3339 timestamp
+  requests: number;
+  chat_completion_tokens: number;
+  chat_prompt_tokens: number;
+  chat_cost: number;
+  embedding_completion_tokens: number;
+  embedding_prompt_tokens: number;
+  embedding_cost: number;
+}
+
+export namespace QueryModel {
+  export type Weight = Weight.Static | Weight.TrainingTable;
+
+  export namespace Weight {
+    export interface Static {
+      type: "static";
+    }
+
+    export interface TrainingTable {
+      type: "training_table";
+      embeddings_model: string;
+      top: number;
+    }
+  }
+
+  export interface QueryLlmBase {
+    id: string;
+    mode: QueryLlm.Mode;
+    select_top_logprobs?: number | null;
+    frequency_penalty?: number | null;
+    logit_bias?: Record<string, number> | null;
+    max_completion_tokens?: number | null;
+    presence_penalty?: number | null;
+    reasoning_effort?: Chat.Completions.Request.ReasoningEffort | null;
+    stop?: Chat.Completions.Request.Stop | null;
+    temperature?: number | null;
+    top_p?: number | null;
+    max_tokens?: number | null;
+    min_p?: number | null;
+    provider?: Chat.Completions.Request.ProviderPreferences | null;
+    reasoning?: Chat.Completions.Request.Reasoning | null;
+    repetition_penalty?: number | null;
+    top_a?: number | null;
+    top_k?: number | null;
+    verbosity?: Chat.Completions.Request.Verbosity | null;
+    models?: string[] | null;
+    weight: QueryLlm.Weight;
+  }
+
+  export interface QueryLlmWithoutIndices extends QueryLlmBase {
+    name: string;
+    training_table_name?: string;
+  }
+
+  export interface QueryLlm extends QueryLlmWithoutIndices {
+    index: number;
+    training_table_index?: number;
+  }
+
+  export interface QueryLlmWithoutIndicesWithMetadata
+    extends QueryLlmWithoutIndices {
+    user_id: string;
+    created: string; // RFC 3339 timestamp
+    requests: number;
+    chat_completion_tokens: number;
+    chat_prompt_tokens: number;
+    chat_cost: number;
+    embedding_completion_tokens: number;
+    embedding_prompt_tokens: number;
+    embedding_cost: number;
+  }
+
+  export namespace QueryLlm {
+    export type Mode =
+      | "generate"
+      | "select_thinking"
+      | "select_non_thinking"
+      | "select_thinking_logprobs"
+      | "select_non_thinking_logprobs";
+
+    export type Weight = Weight.Static | Weight.TrainingTable;
+
+    export namespace Weight {
+      export interface Static {
+        type: "static";
+        weight: number;
+      }
+
+      export interface TrainingTable {
+        type: "training_table";
+        base_weight: number;
+        min_weight: number;
+        max_weight: number;
+      }
+    }
+
+    export async function retrieve(
+      openai: OpenAI,
+      model: string,
+      retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
+      options?: OpenAI.RequestOptions
+    ): Promise<QueryLlmWithoutIndices>;
+    export async function retrieve(
+      openai: OpenAI,
+      model: string,
+      retrieveOptions: Models.RetrieveOptionsWithMetadata,
+      options?: OpenAI.RequestOptions
+    ): Promise<QueryLlmWithoutIndicesWithMetadata>;
+    export async function retrieve(
+      openai: OpenAI,
+      model: string,
+      retrieveOptions?: Models.RetrieveOptions,
+      options?: OpenAI.RequestOptions
+    ): Promise<QueryLlmWithoutIndices | QueryLlmWithoutIndicesWithMetadata> {
+      const response = await openai.get(`/query_llms/${model}`, {
+        query: retrieveOptions,
+        ...options,
+      });
+      return response as
+        | QueryLlmWithoutIndices
+        | QueryLlmWithoutIndicesWithMetadata;
+    }
+
+    export async function retrieveValidate(
+      openai: OpenAI,
+      model: QueryLlmBase,
+      retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
+      options?: OpenAI.RequestOptions
+    ): Promise<QueryLlmWithoutIndices>;
+    export async function retrieveValidate(
+      openai: OpenAI,
+      model: QueryLlmBase,
+      retrieveOptions: Models.RetrieveOptionsWithMetadata,
+      options?: OpenAI.RequestOptions
+    ): Promise<QueryLlmWithoutIndicesWithMetadata>;
+    export async function retrieveValidate(
+      openai: OpenAI,
+      model: QueryLlmBase,
+      retrieveOptions?: Models.RetrieveOptions,
+      options?: OpenAI.RequestOptions
+    ): Promise<QueryLlmWithoutIndices | QueryLlmWithoutIndicesWithMetadata> {
+      const response = await openai.post("/query_llms", {
+        query: retrieveOptions,
+        body: model,
+        ...options,
+      });
+      return response as
+        | QueryLlmWithoutIndices
+        | QueryLlmWithoutIndicesWithMetadata;
+    }
+  }
+
+  export async function list(
+    openai: OpenAI,
+    listOptions?: Models.ListOptions,
+    options?: OpenAI.RequestOptions
+  ): Promise<{ data: string[] }> {
+    const response = await openai.get("/query_models", {
+      query: listOptions,
+      ...options,
+    });
+    return response as { data: string[] };
+  }
+
+  export async function count(
+    openai: OpenAI,
+    options?: OpenAI.RequestOptions
+  ): Promise<{ count: number }> {
+    const response = await openai.get("/query_models/count", options);
+    return response as { count: number };
+  }
+
+  export async function retrieve(
+    openai: OpenAI,
+    model: string,
+    retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
+    options?: OpenAI.RequestOptions
+  ): Promise<QueryModel>;
+  export async function retrieve(
+    openai: OpenAI,
+    model: string,
+    retrieveOptions: Models.RetrieveOptionsWithMetadata,
+    options?: OpenAI.RequestOptions
+  ): Promise<QueryModelWithMetadata>;
+  export async function retrieve(
+    openai: OpenAI,
+    model: string,
+    retrieveOptions?: Models.RetrieveOptions,
+    options?: OpenAI.RequestOptions
+  ): Promise<QueryModel | QueryModelWithMetadata> {
+    const response = await openai.get(`/query_models/${model}`, {
+      query: retrieveOptions,
+      ...options,
+    });
+    return response as QueryModel | QueryModelWithMetadata;
+  }
+
+  export async function retrieveValidate(
+    openai: OpenAI,
+    model: QueryModelBase,
+    retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
+    options?: OpenAI.RequestOptions
+  ): Promise<QueryModel>;
+  export async function retrieveValidate(
+    openai: OpenAI,
+    model: QueryModelBase,
+    retrieveOptions: Models.RetrieveOptionsWithMetadata,
+    options?: OpenAI.RequestOptions
+  ): Promise<QueryModelWithMetadata>;
+  export async function retrieveValidate(
+    openai: OpenAI,
+    model: QueryModelBase,
+    retrieveOptions?: Models.RetrieveOptions,
+    options?: OpenAI.RequestOptions
+  ): Promise<QueryModel | QueryModelWithMetadata> {
+    const response = await openai.post("/query_models", {
+      query: retrieveOptions,
+      body: model,
+      ...options,
+    });
+    return response as QueryModel | QueryModelWithMetadata;
   }
 }
 
