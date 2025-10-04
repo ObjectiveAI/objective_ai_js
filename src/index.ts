@@ -2860,7 +2860,7 @@ export namespace QueryModel {
       retrieveOptions?: Models.RetrieveOptions,
       options?: OpenAI.RequestOptions
     ): Promise<QueryLlm | QueryLlmWithMetadata> {
-      const response = await openai.get(`/query_models/${model}`, {
+      const response = await openai.get(`/query_llms/${model}`, {
         query: retrieveOptions,
         ...options,
       });
@@ -2873,7 +2873,7 @@ export namespace QueryModel {
       retrieveOptions?: Models.RetrieveOptions,
       options?: OpenAI.RequestOptions
     ): Promise<QueryLlm | QueryLlmWithMetadata> {
-      const response = await openai.post("/query_models", {
+      const response = await openai.post("/query_llms", {
         query: retrieveOptions,
         body: model,
         ...options,
