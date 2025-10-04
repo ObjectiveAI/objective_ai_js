@@ -2818,7 +2818,8 @@ export namespace QueryModel {
     training_table_index?: number;
   }
 
-  export interface QueryLlmWithMetadata extends QueryLlm {
+  export interface QueryLlmWithoutIndicesWithMetadata
+    extends QueryLlmWithoutIndices {
     user_id: string;
     created: string; // RFC 3339 timestamp
     requests: number;
@@ -2859,12 +2860,14 @@ export namespace QueryModel {
       model: string,
       retrieveOptions?: Models.RetrieveOptions,
       options?: OpenAI.RequestOptions
-    ): Promise<QueryLlm | QueryLlmWithMetadata> {
+    ): Promise<QueryLlmWithoutIndices | QueryLlmWithoutIndicesWithMetadata> {
       const response = await openai.get(`/query_llms/${model}`, {
         query: retrieveOptions,
         ...options,
       });
-      return response as QueryLlm | QueryLlmWithMetadata;
+      return response as
+        | QueryLlmWithoutIndices
+        | QueryLlmWithoutIndicesWithMetadata;
     }
 
     export async function retrieveValidate(
@@ -2872,13 +2875,15 @@ export namespace QueryModel {
       model: QueryLlmBase,
       retrieveOptions?: Models.RetrieveOptions,
       options?: OpenAI.RequestOptions
-    ): Promise<QueryLlm | QueryLlmWithMetadata> {
+    ): Promise<QueryLlmWithoutIndices | QueryLlmWithoutIndicesWithMetadata> {
       const response = await openai.post("/query_llms", {
         query: retrieveOptions,
         body: model,
         ...options,
       });
-      return response as QueryLlm | QueryLlmWithMetadata;
+      return response as
+        | QueryLlmWithoutIndices
+        | QueryLlmWithoutIndicesWithMetadata;
     }
   }
 
