@@ -236,27 +236,43 @@ export namespace Chat {
               }
 
               export interface ImageUrl {
-                url: string;
-                detail?: ImageUrl.Detail | null;
+                image_url: ImageUrl.Definition;
+                type: "image_url";
               }
 
               export namespace ImageUrl {
+                export interface Definition {
+                  url: string;
+                  detail?: ImageUrl.Detail | null;
+                }
+
                 export type Detail = "auto" | "low" | "high";
               }
 
               export interface InputAudio {
-                data: string;
-                format: InputAudio.Format;
+                input_audio: InputAudio.Definition;
+                type: "input_audio";
               }
 
               export namespace InputAudio {
+                export interface Definition {
+                  data: string;
+                  format: Format;
+                }
                 export type Format = "wav" | "mp3";
               }
 
               export interface File {
-                file_data?: string | null;
-                file_id?: string | null;
-                filename?: string | null;
+                file: File.Definition;
+                type: "file";
+              }
+
+              export namespace File {
+                export interface Definition {
+                  file_data?: string | null;
+                  file_id?: string | null;
+                  filename?: string | null;
+                }
               }
             }
           }
