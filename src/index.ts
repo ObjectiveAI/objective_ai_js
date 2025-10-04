@@ -2858,6 +2858,18 @@ export namespace QueryModel {
     export async function retrieve(
       openai: OpenAI,
       model: string,
+      retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
+      options?: OpenAI.RequestOptions
+    ): Promise<QueryLlmWithoutIndices>;
+    export async function retrieve(
+      openai: OpenAI,
+      model: string,
+      retrieveOptions: Models.RetrieveOptionsWithMetadata,
+      options?: OpenAI.RequestOptions
+    ): Promise<QueryLlmWithoutIndicesWithMetadata>;
+    export async function retrieve(
+      openai: OpenAI,
+      model: string,
       retrieveOptions?: Models.RetrieveOptions,
       options?: OpenAI.RequestOptions
     ): Promise<QueryLlmWithoutIndices | QueryLlmWithoutIndicesWithMetadata> {
@@ -2870,6 +2882,18 @@ export namespace QueryModel {
         | QueryLlmWithoutIndicesWithMetadata;
     }
 
+    export async function retrieveValidate(
+      openai: OpenAI,
+      model: QueryLlmBase,
+      retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
+      options?: OpenAI.RequestOptions
+    ): Promise<QueryLlmWithoutIndices>;
+    export async function retrieveValidate(
+      openai: OpenAI,
+      model: QueryLlmBase,
+      retrieveOptions: Models.RetrieveOptionsWithMetadata,
+      options?: OpenAI.RequestOptions
+    ): Promise<QueryLlmWithoutIndicesWithMetadata>;
     export async function retrieveValidate(
       openai: OpenAI,
       model: QueryLlmBase,
@@ -2910,6 +2934,18 @@ export namespace QueryModel {
   export async function retrieve(
     openai: OpenAI,
     model: string,
+    retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
+    options?: OpenAI.RequestOptions
+  ): Promise<QueryModel>;
+  export async function retrieve(
+    openai: OpenAI,
+    model: string,
+    retrieveOptions: Models.RetrieveOptionsWithMetadata,
+    options?: OpenAI.RequestOptions
+  ): Promise<QueryModelWithMetadata>;
+  export async function retrieve(
+    openai: OpenAI,
+    model: string,
     retrieveOptions?: Models.RetrieveOptions,
     options?: OpenAI.RequestOptions
   ): Promise<QueryModel | QueryModelWithMetadata> {
@@ -2920,6 +2956,18 @@ export namespace QueryModel {
     return response as QueryModel | QueryModelWithMetadata;
   }
 
+  export async function retrieveValidate(
+    openai: OpenAI,
+    model: QueryModelBase,
+    retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
+    options?: OpenAI.RequestOptions
+  ): Promise<QueryModel>;
+  export async function retrieveValidate(
+    openai: OpenAI,
+    model: QueryModelBase,
+    retrieveOptions: Models.RetrieveOptionsWithMetadata,
+    options?: OpenAI.RequestOptions
+  ): Promise<QueryModelWithMetadata>;
   export async function retrieveValidate(
     openai: OpenAI,
     model: QueryModelBase,
@@ -3012,12 +3060,20 @@ export namespace Models {
     to?: string; // RFC 3339 timestamp
   }
 
-  export interface RetrieveOptions {
-    metadata?: boolean | null;
+  export interface RetrieveOptionsBase {
     me?: boolean | null;
     from?: string | null; // RFC 3339 timestamp
     to?: string | null; // RFC 3339 timestamp
   }
+  export interface RetrieveOptionsWithMetadata extends RetrieveOptionsBase {
+    metadata: true;
+  }
+  export interface RetrieveOptionsWithoutMetadata extends RetrieveOptionsBase {
+    metadata?: false | null;
+  }
+  export type RetrieveOptions =
+    | RetrieveOptionsWithMetadata
+    | RetrieveOptionsWithoutMetadata;
 
   export async function list(
     openai: OpenAI,
