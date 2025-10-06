@@ -1529,7 +1529,7 @@ export namespace Query {
       | Stream<Response.Streaming.ChatCompletionChunk | ObjectiveAIError>
       | Response.Unary.ChatCompletion
     > {
-      const response = await openai.post("/chat/completions", {
+      const response = await openai.post("/query/completions", {
         body,
         ...options,
       });
@@ -2138,7 +2138,7 @@ export namespace QueryTool {
       | Stream<Response.Streaming.ChatCompletionChunk | ObjectiveAIError>
       | Response.Unary.ChatCompletion
     > {
-      const response = await openai.post("/chat/completions", {
+      const response = await openai.post("/query_tool/completions", {
         body,
         ...options,
       });
@@ -2750,7 +2750,7 @@ export namespace QueryChat {
       | Stream<Response.Streaming.ChatCompletionChunk | ObjectiveAIError>
       | Response.Unary.ChatCompletion
     > {
-      const response = await openai.post("/chat/completions", {
+      const response = await openai.post("/query_chat/completions", {
         body,
         ...options,
       });
