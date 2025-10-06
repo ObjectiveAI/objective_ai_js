@@ -1116,6 +1116,7 @@ export namespace Chat {
     > {
       const response = await openai.post("/chat/completions", {
         body,
+        stream: body.stream ?? false,
         ...options,
       });
       return response as unknown as
@@ -1531,6 +1532,7 @@ export namespace Query {
     > {
       const response = await openai.post("/query/completions", {
         body,
+        stream: body.stream ?? false,
         ...options,
       });
       return response as unknown as
@@ -2140,6 +2142,7 @@ export namespace QueryTool {
     > {
       const response = await openai.post("/query_tool/completions", {
         body,
+        stream: body.stream ?? false,
         ...options,
       });
       return response as unknown as
@@ -2752,6 +2755,7 @@ export namespace QueryChat {
     > {
       const response = await openai.post("/query_chat/completions", {
         body,
+        stream: body.stream ?? false,
         ...options,
       });
       return response as unknown as
