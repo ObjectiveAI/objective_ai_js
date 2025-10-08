@@ -1502,12 +1502,34 @@ export namespace Query {
     ): Promise<{
       request: Request.ChatCompletionCreateParams;
       response: Response.Unary.ChatCompletion;
+      correct_confidence_id?: string;
     }> {
       const response = await openai.get(`/query/completions/${id}`, options);
       return response as {
         request: Request.ChatCompletionCreateParams;
         response: Response.Unary.ChatCompletion;
+        correct_confidence_id?: string;
       };
+    }
+
+    export async function trainingTableMark(
+      openai: OpenAI,
+      id: string,
+      correctConfidenceId: string,
+      options?: OpenAI.RequestOptions
+    ): Promise<void> {
+      await openai.post(`/query/completions/${id}/training_table`, {
+        body: { correct_confidence_id: correctConfidenceId },
+        ...options,
+      });
+    }
+
+    export async function trainingTableUnmark(
+      openai: OpenAI,
+      id: string,
+      options?: OpenAI.RequestOptions
+    ): Promise<void> {
+      await openai.delete(`/query/completions/${id}/training_table`, options);
     }
 
     export async function create(
