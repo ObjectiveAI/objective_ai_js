@@ -1581,6 +1581,7 @@ export namespace QueryTool {
         top_logprobs?: number | null;
         usage?: Chat.Completions.Request.Usage | null;
         embeddings?: string | null;
+        select_deterministic?: boolean | null;
       }
 
       export interface ChatCompletionCreateParamsStreaming
@@ -1609,10 +1610,12 @@ export namespace QueryTool {
           | {
               tool: "simple_query";
               top?: number | null;
+              select_deterministic?: boolean | null;
             }
           | ({
               tool: "simple_query";
               top?: number | null;
+              select_deterministic?: boolean | null;
             } & Chat.Completions.Request.ResponseFormat);
 
         export interface NumberQuery {
@@ -1634,10 +1637,12 @@ export namespace QueryTool {
           | {
               tool: "weighted_average_choice_query";
               embeddings_model: string;
+              select_deterministic?: boolean | null;
             }
           | ({
               tool: "weighted_average_choice_query";
               embeddings_model: string;
+              select_deterministic?: boolean | null;
             } & Chat.Completions.Request.ResponseFormat);
       }
     }
