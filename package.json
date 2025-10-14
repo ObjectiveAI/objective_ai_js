@@ -1,6 +1,6 @@
 {
   "name": "objectiveai",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "SDK for the Objective AI API, intended for use in conjunction with the OpenAI SDK.",
   "main": "dist/index.js",
   "repository": {
@@ -8,7 +8,9 @@
     "url": "https://github.com/ObjectiveAI/objective_ai_js.git"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "rimraf dist && npm run build:cjs && npm run build:esm",
+    "build:cjs": "tsc --project tsconfig.cjs.json && shx mv dist/index.js dist/index.cjs",
+    "build:esm": "tsc --project tsconfig.esm.json",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node dist/index.js",
     "prepare": "npm run build"
@@ -18,9 +20,14 @@
     "email": "support@objective-ai.io",
     "url": "https://objective-ai.io"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "devDependencies": {
     "openai": "^4.98.0",
+    "rimraf": "^6.0.1",
+    "shx": "^0.4.0",
     "typescript": "^5.8.3"
   },
   "keywords": [
@@ -43,6 +50,7 @@
   "exports": {
     ".": {
       "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
       "types": "./dist/index.d.ts"
     }
   },
