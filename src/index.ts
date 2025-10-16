@@ -3086,6 +3086,7 @@ export namespace QueryModel {
     id: string;
     mode: QueryLlm.Mode;
     select_top_logprobs?: number | null;
+    tool_response_format?: boolean | null;
     frequency_penalty?: number | null;
     logit_bias?: Record<string, number> | null;
     max_completion_tokens?: number | null;
