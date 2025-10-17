@@ -1143,6 +1143,7 @@ export namespace Query {
         top_logprobs?: number | null;
         usage?: Chat.Completions.Request.Usage | null;
         embeddings?: string | null;
+        select_deterministic?: boolean | null;
       }
 
       export interface ChatCompletionCreateParamsStreaming
@@ -1581,7 +1582,6 @@ export namespace QueryTool {
         top_logprobs?: number | null;
         usage?: Chat.Completions.Request.Usage | null;
         embeddings?: string | null;
-        select_deterministic?: boolean | null;
       }
 
       export interface ChatCompletionCreateParamsStreaming
