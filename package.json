@@ -1,6 +1,6 @@
 {
   "name": "objectiveai",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "SDK for the Objective AI API, intended for use in conjunction with the OpenAI SDK.",
   "main": "dist/index.js",
   "repository": {
