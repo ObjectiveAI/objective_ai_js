@@ -3046,6 +3046,7 @@ export namespace Metadata {
 export interface QueryModelBase {
   models: QueryModel.QueryLlmBase[];
   weight: QueryModel.Weight;
+  select_generated_reasoning?: boolean | null;
 }
 
 export interface QueryModel {
