@@ -1,11 +1,11 @@
 {
   "name": "objectiveai",
-  "version": "1.0.4",
-  "description": "SDK for the Objective AI API, intended for use in conjunction with the OpenAI SDK.",
+  "version": "1.1.0",
+  "description": "SDK for the ObjectiveAI API.",
   "main": "dist/index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ObjectiveAI/objective_ai_js.git"
+    "url": "https://github.com/ObjectiveAI/objectiveai-js.git"
   },
   "scripts": {
     "build": "rimraf dist && npm run build:cjs && npm run build:esm",
@@ -16,8 +16,8 @@
     "prepare": "npm run build"
   },
   "author": {
-    "name": "Objective AI",
-    "email": "support@objective-ai.io",
+    "name": "ObjectiveAI",
+    "email": "admin@objective-ai.io",
     "url": "https://objective-ai.io"
   },
   "publishConfig": {
@@ -44,8 +44,9 @@
     "objective ai",
     "objective",
     "confidence",
-    "confidence id",
-    "confidence score"
+    "confidence score",
+    "rank",
+    "score"
   ],
   "exports": {
     ".": {
