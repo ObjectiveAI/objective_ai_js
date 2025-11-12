@@ -75,7 +75,7 @@ export namespace Chat {
         }
       }
 
-      export type ReasoningEffort = "low" | "medium" | "high";
+      export type ReasoningEffort = "minimal" | "low" | "medium" | "high";
 
       export type ResponseFormat =
         | ResponseFormat.Text
@@ -1126,24 +1126,18 @@ export namespace Chat {
   }
 }
 
-export namespace Query {
+export namespace Score {
   export namespace Completions {
     export namespace Request {
       export interface ChatCompletionCreateParamsBase {
         messages: Chat.Completions.Request.Message[];
         model: Model;
-        logprobs?: boolean | null;
-        n?: number | null;
-        prediction?: Chat.Completions.Request.Prediction | null;
-        response_format?: Chat.Completions.Request.ResponseFormat | null;
         seed?: number | null;
         service_tier?: Chat.Completions.Request.ServiceTier | null;
         stream_options?: Chat.Completions.Request.StreamOptions | null;
         tools?: Chat.Completions.Request.Tool[] | null;
-        top_logprobs?: number | null;
         usage?: Chat.Completions.Request.Usage | null;
-        embeddings?: string | null;
-        select_deterministic?: boolean | null;
+        choices: string[];
       }
 
       export interface ChatCompletionCreateParamsStreaming
@@ -1160,7 +1154,7 @@ export namespace Query {
         | ChatCompletionCreateParamsStreaming
         | ChatCompletionCreateParamsNonStreaming;
 
-      export type Model = string | QueryModelBase;
+      export type Model = string | ScoreModelBase;
     }
 
     export namespace Response {
@@ -1171,10 +1165,8 @@ export namespace Query {
           created: number;
           model: string;
           object: "chat.completion.chunk";
-          service_tier?: Chat.Completions.Response.ServiceTier;
-          system_fingerprint?: string;
           usage?: Chat.Completions.Response.Usage;
-          training_table_data?: TrainingTableData;
+          weight_data?: WeightData;
         }
 
         export namespace ChatCompletionChunk {
@@ -1190,30 +1182,16 @@ export namespace Query {
             const created = a.created;
             const model = a.model;
             const object = a.object;
-            const [service_tier, service_tierChanged] = merge(
-              a.service_tier,
-              b.service_tier
-            );
-            const [system_fingerprint, system_fingerprintChanged] = merge(
-              a.system_fingerprint,
-              b.system_fingerprint
-            );
             const [usage, usageChanged] = merge(
               a.usage,
               b.usage,
               Chat.Completions.Response.Usage.merged
             );
-            const [training_table_data, training_table_dataChanged] = merge(
-              a.training_table_data,
-              b.training_table_data
+            const [weight_data, weight_dataChanged] = merge(
+              a.weight_data,
+              b.weight_data
             );
-            if (
-              choicesChanged ||
-              service_tierChanged ||
-              system_fingerprintChanged ||
-              usageChanged ||
-              training_table_dataChanged
-            ) {
+            if (choicesChanged || usageChanged || weight_dataChanged) {
               return [
                 {
                   id,
@@ -1221,14 +1199,8 @@ export namespace Query {
                   created,
                   model,
                   object,
-                  ...(service_tier !== undefined ? { service_tier } : {}),
-                  ...(system_fingerprint !== undefined
-                    ? { system_fingerprint }
-                    : {}),
                   ...(usage !== undefined ? { usage } : {}),
-                  ...(training_table_data !== undefined
-                    ? { training_table_data }
-                    : {}),
+                  ...(weight_data !== undefined ? { weight_data } : {}),
                 },
                 true,
               ];
@@ -1239,28 +1211,21 @@ export namespace Query {
         }
 
         export interface Choice {
-          delta: Chat.Completions.Response.Streaming.Delta;
+          delta: Delta;
           finish_reason: Chat.Completions.Response.FinishReason | null;
           index: number;
           logprobs?: Chat.Completions.Response.Logprobs;
-          generate_id?: string;
-          confidence_id?: ConfidenceId;
-          confidence_weight?: number;
+          weight?: number;
           confidence?: number;
-          embedding?: EmbeddingsResponse | ObjectiveAIError;
           error?: ObjectiveAIError;
-          model: string;
-          model_index: number | null;
-          completion_metadata: CompletionMetadata;
+          model?: string;
+          model_index?: number | null;
+          completion_metadata?: CompletionMetadata;
         }
 
         export namespace Choice {
           export function merged(a: Choice, b: Choice): [Choice, boolean] {
-            const [delta, deltaChanged] = merge(
-              a.delta,
-              b.delta,
-              Chat.Completions.Response.Streaming.Delta.merged
-            );
+            const [delta, deltaChanged] = merge(a.delta, b.delta, Delta.merged);
             const [finish_reason, finish_reasonChanged] = merge(
               a.finish_reason,
               b.finish_reason
@@ -1271,44 +1236,31 @@ export namespace Query {
               b.logprobs,
               Chat.Completions.Response.Logprobs.merged
             );
-            const [generate_id, generate_idChanged] = merge(
-              a.generate_id,
-              b.generate_id
-            );
-            const [confidence_id, confidence_idChanged] = merge(
-              a.confidence_id,
-              b.confidence_id
-            );
-            const [confidence_weight, confidence_weightChanged] = merge(
-              a.confidence_weight,
-              b.confidence_weight
-            );
+            const [weight, weightChanged] = merge(a.weight, b.weight);
             const [confidence, confidenceChanged] = merge(
               a.confidence,
               b.confidence
             );
-            const [embedding, embeddingChanged] = merge(
-              a.embedding,
-              b.embedding
-            );
             const [error, errorChanged] = merge(a.error, b.error);
-            const model = a.model;
-            const model_index = a.model_index;
-            const [completion_metadata, completion_metadataChanged] =
-              CompletionMetadata.merged(
-                a.completion_metadata,
-                b.completion_metadata
-              );
+            const [model, modelChanged] = merge(a.model, b.model);
+            const [model_index, model_indexChanged] = merge(
+              a.model_index,
+              b.model_index
+            );
+            const [completion_metadata, completion_metadataChanged] = merge(
+              a.completion_metadata,
+              b.completion_metadata,
+              CompletionMetadata.merged
+            );
             if (
               deltaChanged ||
               finish_reasonChanged ||
               logprobsChanged ||
-              generate_idChanged ||
-              confidence_idChanged ||
-              confidence_weightChanged ||
+              weightChanged ||
               confidenceChanged ||
-              embeddingChanged ||
               errorChanged ||
+              modelChanged ||
+              model_indexChanged ||
               completion_metadataChanged
             ) {
               return [
@@ -1317,17 +1269,14 @@ export namespace Query {
                   finish_reason,
                   index,
                   ...(logprobs !== undefined ? { logprobs } : {}),
-                  ...(generate_id !== undefined ? { generate_id } : {}),
-                  ...(confidence_id !== undefined ? { confidence_id } : {}),
-                  ...(confidence_weight !== undefined
-                    ? { confidence_weight }
-                    : {}),
+                  ...(weight !== undefined ? { weight } : {}),
                   ...(confidence !== undefined ? { confidence } : {}),
-                  ...(embedding !== undefined ? { embedding } : {}),
                   ...(error !== undefined ? { error } : {}),
-                  model,
-                  model_index,
-                  completion_metadata,
+                  ...(model !== undefined ? { model } : {}),
+                  ...(model_index !== undefined ? { model_index } : {}),
+                  ...(completion_metadata !== undefined
+                    ? { completion_metadata }
+                    : {}),
                 },
                 true,
               ];
@@ -1366,6 +1315,67 @@ export namespace Query {
             return merged ? [merged, true] : [a, false];
           }
         }
+
+        export interface Delta
+          extends Chat.Completions.Response.Streaming.Delta {
+          vote?: number[];
+        }
+
+        export namespace Delta {
+          export function merged(a: Delta, b: Delta): [Delta, boolean] {
+            const [content, contentChanged] = merge(
+              a.content,
+              b.content,
+              mergedString
+            );
+            const [refusal, refusalChanged] = merge(
+              a.refusal,
+              b.refusal,
+              mergedString
+            );
+            const [role, roleChanged] = merge(a.role, b.role);
+            const [tool_calls, tool_callsChanged] = merge(
+              a.tool_calls,
+              b.tool_calls,
+              Chat.Completions.Response.Streaming.ToolCall.mergedList
+            );
+            const [reasoning, reasoningChanged] = merge(
+              a.reasoning,
+              b.reasoning,
+              mergedString
+            );
+            const [images, imagesChanged] = merge(
+              a.images,
+              b.images,
+              Chat.Completions.Response.Image.mergedList
+            );
+            const [vote, voteChanged] = merge(a.vote, b.vote);
+            if (
+              contentChanged ||
+              reasoningChanged ||
+              refusalChanged ||
+              roleChanged ||
+              tool_callsChanged ||
+              imagesChanged ||
+              voteChanged
+            ) {
+              return [
+                {
+                  ...(content !== undefined ? { content } : {}),
+                  ...(reasoning !== undefined ? { reasoning } : {}),
+                  ...(refusal !== undefined ? { refusal } : {}),
+                  ...(role !== undefined ? { role } : {}),
+                  ...(tool_calls !== undefined ? { tool_calls } : {}),
+                  ...(images !== undefined ? { images } : {}),
+                  ...(vote !== undefined ? { vote } : {}),
+                },
+                true,
+              ];
+            } else {
+              return [a, false];
+            }
+          }
+        }
       }
 
       export namespace Unary {
@@ -1375,32 +1385,40 @@ export namespace Query {
           created: number;
           model: string;
           object: "chat.completion";
-          service_tier?: Chat.Completions.Response.ServiceTier;
-          system_fingerprint?: string;
           usage?: Chat.Completions.Response.Usage;
-          training_table_data?: TrainingTableData;
+          weight_data?: WeightData | null;
         }
 
         export interface Choice {
-          message: Chat.Completions.Response.Unary.Message;
+          message: Message;
           finish_reason: Chat.Completions.Response.FinishReason;
           index: number;
           logprobs: Chat.Completions.Response.Logprobs | null;
-          generate_id: string | null;
-          confidence_id: ConfidenceId | null;
-          confidence_weight: number | null;
+          weight: number | null;
           confidence: number | null;
-          embedding?: EmbeddingsResponse | ObjectiveAIError;
-          error?: ObjectiveAIError;
-          model: string;
+          error: ObjectiveAIError | null;
+          model: string | null;
           model_index: number | null;
-          completion_metadata: CompletionMetadata;
+          completion_metadata: CompletionMetadata | null;
+        }
+
+        export interface Message
+          extends Chat.Completions.Response.Unary.Message {
+          vote: number[] | null;
         }
       }
 
-      export interface TrainingTableData {
-        response_format_hash: string;
-        embeddings_response: EmbeddingsResponse;
+      export type WeightData = WeightData.Static | WeightData.TrainingTable;
+
+      export namespace WeightData {
+        export interface Static {
+          type: "static";
+        }
+
+        export interface TrainingTable {
+          type: "training_table";
+          embeddings_response: EmbeddingsResponse;
+        }
       }
 
       export interface EmbeddingsResponse {
@@ -1472,8 +1490,6 @@ export namespace Query {
           }
         }
       }
-
-      export type ConfidenceId = string | Record<string, number>;
     }
 
     export async function list(
@@ -1481,7 +1497,7 @@ export namespace Query {
       listOptions?: Chat.Completions.ListOptions,
       options?: OpenAI.RequestOptions
     ): Promise<{ data: Chat.Completions.ListItem[] }> {
-      const response = await openai.get("/query/completions", {
+      const response = await openai.get("/score/completions", {
         query: listOptions,
         ...options,
       });
@@ -1493,7 +1509,7 @@ export namespace Query {
       id: string,
       options?: OpenAI.RequestOptions
     ): Promise<void> {
-      await openai.post(`/query/completions/${id}/publish`, options);
+      await openai.post(`/score/completions/${id}/publish`, options);
     }
 
     export async function retrieve(
@@ -1503,34 +1519,36 @@ export namespace Query {
     ): Promise<{
       request: Request.ChatCompletionCreateParams;
       response: Response.Unary.ChatCompletion;
-      correct_confidence_id?: string;
+      correct_vote: number[] | null;
+      correct_vote_modified: string | null; // RFC 3339 timestamp
     }> {
-      const response = await openai.get(`/query/completions/${id}`, options);
+      const response = await openai.get(`/score/completions/${id}`, options);
       return response as {
         request: Request.ChatCompletionCreateParams;
         response: Response.Unary.ChatCompletion;
-        correct_confidence_id?: string;
+        correct_vote: number[] | null;
+        correct_vote_modified: string | null; // RFC 3339 timestamp
       };
     }
 
-    export async function trainingTableMark(
+    export async function trainingTableAdd(
       openai: OpenAI,
       id: string,
-      correctConfidenceId: string,
+      correctVote: number[],
       options?: OpenAI.RequestOptions
     ): Promise<void> {
-      await openai.post(`/query/completions/${id}/training_table`, {
-        body: { correct_confidence_id: correctConfidenceId },
+      await openai.post(`/score/completions/${id}/training_table`, {
+        body: { correct_vote: correctVote },
         ...options,
       });
     }
 
-    export async function trainingTableUnmark(
+    export async function trainingTableDelete(
       openai: OpenAI,
       id: string,
       options?: OpenAI.RequestOptions
     ): Promise<void> {
-      await openai.delete(`/query/completions/${id}/training_table`, options);
+      await openai.delete(`/score/completions/${id}/training_table`, options);
     }
 
     export async function create(
@@ -1553,1234 +1571,7 @@ export namespace Query {
       | Stream<Response.Streaming.ChatCompletionChunk | ObjectiveAIError>
       | Response.Unary.ChatCompletion
     > {
-      const response = await openai.post("/query/completions", {
-        body,
-        stream: body.stream ?? false,
-        ...options,
-      });
-      return response as unknown as
-        | Stream<Response.Streaming.ChatCompletionChunk | ObjectiveAIError>
-        | Response.Unary.ChatCompletion;
-    }
-  }
-}
-
-export namespace QueryTool {
-  export namespace Completions {
-    export namespace Request {
-      export interface ChatCompletionCreateParamsBase {
-        messages: Chat.Completions.Request.Message[];
-        model: Query.Completions.Request.Model;
-        logprobs?: boolean | null;
-        n?: number | null;
-        prediction?: Chat.Completions.Request.Prediction | null;
-        response_format: ResponseFormat;
-        seed?: number | null;
-        service_tier?: Chat.Completions.Request.ServiceTier | null;
-        stream_options?: Chat.Completions.Request.StreamOptions | null;
-        tools?: Chat.Completions.Request.Tool[] | null;
-        top_logprobs?: number | null;
-        usage?: Chat.Completions.Request.Usage | null;
-        embeddings?: string | null;
-      }
-
-      export interface ChatCompletionCreateParamsStreaming
-        extends ChatCompletionCreateParamsBase {
-        stream: true;
-      }
-
-      export interface ChatCompletionCreateParamsNonStreaming
-        extends ChatCompletionCreateParamsBase {
-        stream?: false | null;
-      }
-
-      export type ChatCompletionCreateParams =
-        | ChatCompletionCreateParamsStreaming
-        | ChatCompletionCreateParamsNonStreaming;
-
-      export type ResponseFormat =
-        | ResponseFormat.Simple
-        | ResponseFormat.NumberQuery
-        | ResponseFormat.MultipleChoiceQuery
-        | ResponseFormat.MultipleChoiceOptionsQuery
-        | ResponseFormat.WeightedAverageChoiceQuery;
-
-      export namespace ResponseFormat {
-        export type Simple =
-          | {
-              tool: "simple_query";
-              top?: number | null;
-              select_deterministic?: boolean | null;
-            }
-          | ({
-              tool: "simple_query";
-              top?: number | null;
-              select_deterministic?: boolean | null;
-            } & Chat.Completions.Request.ResponseFormat);
-
-        export interface NumberQuery {
-          tool: "number_query";
-        }
-
-        export interface MultipleChoiceQuery {
-          tool: "multiple_choice_query";
-          choices: string[];
-        }
-
-        export interface MultipleChoiceOptionsQuery {
-          tool: "multiple_choice_options_query";
-          min_items: number;
-          max_items: number;
-        }
-
-        export type WeightedAverageChoiceQuery =
-          | {
-              tool: "weighted_average_choice_query";
-              embeddings_model: string;
-              select_deterministic?: boolean | null;
-            }
-          | ({
-              tool: "weighted_average_choice_query";
-              embeddings_model: string;
-              select_deterministic?: boolean | null;
-            } & Chat.Completions.Request.ResponseFormat);
-      }
-    }
-
-    export namespace Response {
-      export namespace Streaming {
-        export interface ChatCompletionChunk {
-          id: string;
-          choices: Choice[];
-          created: number;
-          model: Model;
-          object: "chat.completion.chunk";
-          service_tier?: Chat.Completions.Response.ServiceTier;
-          system_fingerprint?: string;
-          usage?: Chat.Completions.Response.Usage;
-        }
-
-        export namespace ChatCompletionChunk {
-          export function merged(
-            a: ChatCompletionChunk,
-            b: ChatCompletionChunk
-          ): [ChatCompletionChunk, boolean] {
-            const id = a.id;
-            const [choices, choicesChanged] = Choice.mergedList(
-              a.choices,
-              b.choices
-            );
-            const created = a.created;
-            const model = a.model;
-            const object = a.object;
-            const [service_tier, service_tierChanged] = merge(
-              a.service_tier,
-              b.service_tier
-            );
-            const [system_fingerprint, system_fingerprintChanged] = merge(
-              a.system_fingerprint,
-              b.system_fingerprint
-            );
-            const [usage, usageChanged] = merge(
-              a.usage,
-              b.usage,
-              Chat.Completions.Response.Usage.merged
-            );
-            if (
-              choicesChanged ||
-              service_tierChanged ||
-              system_fingerprintChanged ||
-              usageChanged
-            ) {
-              return [
-                {
-                  id,
-                  choices,
-                  created,
-                  model,
-                  object,
-                  ...(service_tier !== undefined ? { service_tier } : {}),
-                  ...(system_fingerprint !== undefined
-                    ? { system_fingerprint }
-                    : {}),
-                  ...(usage !== undefined ? { usage } : {}),
-                },
-                true,
-              ];
-            } else {
-              return [a, false];
-            }
-          }
-        }
-
-        export interface Choice {
-          delta: Delta;
-          finish_reason: Chat.Completions.Response.FinishReason | null;
-          index: number;
-          logprobs?: Chat.Completions.Response.Logprobs;
-        }
-
-        export namespace Choice {
-          export function merged(a: Choice, b: Choice): [Choice, boolean] {
-            const [delta, deltaChanged] = merge(a.delta, b.delta, Delta.merged);
-            const [finish_reason, finish_reasonChanged] = merge(
-              a.finish_reason,
-              b.finish_reason
-            );
-            const index = a.index;
-            const [logprobs, logprobsChanged] = merge(
-              a.logprobs,
-              b.logprobs,
-              Chat.Completions.Response.Logprobs.merged
-            );
-            if (deltaChanged || finish_reasonChanged || logprobsChanged) {
-              return [
-                {
-                  delta,
-                  finish_reason,
-                  index,
-                  ...(logprobs !== undefined ? { logprobs } : {}),
-                },
-                true,
-              ];
-            } else {
-              return [a, false];
-            }
-          }
-          export function mergedList(
-            a: Choice[],
-            b: Choice[]
-          ): [Choice[], boolean] {
-            let merged: Choice[] | undefined = undefined;
-            for (const choice of b) {
-              const existingIndex = a.findIndex(
-                ({ index }) => index === choice.index
-              );
-              if (existingIndex === -1) {
-                if (merged === undefined) {
-                  merged = [...a, choice];
-                } else {
-                  merged.push(choice);
-                }
-              } else {
-                const [mergedChoice, choiceChanged] = Choice.merged(
-                  a[existingIndex],
-                  choice
-                );
-                if (choiceChanged) {
-                  if (merged === undefined) {
-                    merged = [...a];
-                  }
-                  merged[existingIndex] = mergedChoice;
-                }
-              }
-            }
-            return merged ? [merged, true] : [a, false];
-          }
-        }
-
-        export interface Delta {
-          content?: string;
-          refusal?: string;
-          role?: Chat.Completions.Response.Role;
-          tool_calls?: Chat.Completions.Response.Streaming.ToolCall[];
-          reasoning?: Reasoning;
-        }
-
-        export namespace Delta {
-          export function merged(a: Delta, b: Delta): [Delta, boolean] {
-            const [content, contentChanged] = merge(
-              a.content,
-              b.content,
-              mergedString
-            );
-            const [reasoning, reasoningChanged] = merge(
-              a.reasoning,
-              b.reasoning,
-              Reasoning.merged
-            );
-            const [refusal, refusalChanged] = merge(
-              a.refusal,
-              b.refusal,
-              mergedString
-            );
-            const [role, roleChanged] = merge(a.role, b.role);
-            const [tool_calls, tool_callsChanged] = merge(
-              a.tool_calls,
-              b.tool_calls,
-              Chat.Completions.Response.Streaming.ToolCall.mergedList
-            );
-            if (
-              contentChanged ||
-              reasoningChanged ||
-              refusalChanged ||
-              roleChanged ||
-              tool_callsChanged
-            ) {
-              return [
-                {
-                  ...(content !== undefined ? { content } : {}),
-                  ...(reasoning !== undefined ? { reasoning } : {}),
-                  ...(refusal !== undefined ? { refusal } : {}),
-                  ...(role !== undefined ? { role } : {}),
-                  ...(tool_calls !== undefined ? { tool_calls } : {}),
-                },
-                true,
-              ];
-            } else {
-              return [a, false];
-            }
-          }
-        }
-
-        export type Reasoning = ReasoningCompletion | ReasoningCompletion[];
-
-        export namespace Reasoning {
-          export function merged(
-            a: Reasoning,
-            b: Reasoning
-          ): [Reasoning, boolean] {
-            let merged: Reasoning | undefined = undefined;
-            if (Array.isArray(a)) {
-              if (Array.isArray(b)) {
-                for (const item of b) {
-                  if (merged === undefined) {
-                    const existingIndex = a.findIndex(
-                      ({ index, type }) =>
-                        index === item.index && type === item.type
-                    );
-                    if (existingIndex === -1) {
-                      merged = [...a, item];
-                    } else if (item.type === "query") {
-                      const [mergedItem, itemChanged] =
-                        ReasoningCompletion.QueryCompletion.merged(
-                          a[
-                            existingIndex
-                          ] as ReasoningCompletion.QueryCompletion,
-                          item
-                        );
-                      if (itemChanged) {
-                        merged = [...a];
-                        merged[existingIndex] = mergedItem;
-                      }
-                    } else if (item.type === "chat") {
-                      const [mergedItem, itemChanged] =
-                        ReasoningCompletion.ChatCompletion.merged(
-                          a[
-                            existingIndex
-                          ] as ReasoningCompletion.ChatCompletion,
-                          item
-                        );
-                      if (itemChanged) {
-                        merged = [...a];
-                        merged[existingIndex] = mergedItem;
-                      }
-                    }
-                  } else if (Array.isArray(merged) /* always true */) {
-                    const existingIndex = merged.findIndex(
-                      ({ index, type }) =>
-                        index === item.index && type === item.type
-                    );
-                    if (existingIndex === -1) {
-                      merged.push(item);
-                    } else if (item.type === "query") {
-                      const [mergedItem, itemChanged] =
-                        ReasoningCompletion.QueryCompletion.merged(
-                          merged[
-                            existingIndex
-                          ] as ReasoningCompletion.QueryCompletion,
-                          item
-                        );
-                      if (itemChanged) {
-                        merged[existingIndex] = mergedItem;
-                      }
-                    } else if (item.type === "chat") {
-                      const [mergedItem, itemChanged] =
-                        ReasoningCompletion.ChatCompletion.merged(
-                          merged[
-                            existingIndex
-                          ] as ReasoningCompletion.ChatCompletion,
-                          item
-                        );
-                      if (itemChanged) {
-                        merged[existingIndex] = mergedItem;
-                      }
-                    }
-                  }
-                }
-              } else {
-                const existingIndex = a.findIndex(
-                  ({ index, type }) => index === b.index && type === b.type
-                );
-                if (existingIndex === -1) {
-                  merged = [...a, b];
-                } else if (b.type === "query") {
-                  const [mergedItem, itemChanged] =
-                    ReasoningCompletion.QueryCompletion.merged(
-                      a[existingIndex] as ReasoningCompletion.QueryCompletion,
-                      b
-                    );
-                  if (itemChanged) {
-                    merged = [...a];
-                    merged[existingIndex] = mergedItem;
-                  }
-                } else if (b.type === "chat") {
-                  const [mergedItem, itemChanged] =
-                    ReasoningCompletion.ChatCompletion.merged(
-                      a[existingIndex] as ReasoningCompletion.ChatCompletion,
-                      b
-                    );
-                  if (itemChanged) {
-                    merged = [...a];
-                    merged[existingIndex] = mergedItem;
-                  }
-                }
-              }
-            } else {
-              if (Array.isArray(b)) {
-                merged = [a];
-                for (const item of b) {
-                  const existingIndex = merged.findIndex(
-                    ({ index, type }) =>
-                      index === item.index && type === item.type
-                  );
-                  if (existingIndex === -1) {
-                    merged.push(item);
-                  } else if (item.type === "query") {
-                    const [mergedItem, itemChanged] =
-                      ReasoningCompletion.QueryCompletion.merged(
-                        merged[
-                          existingIndex
-                        ] as ReasoningCompletion.QueryCompletion,
-                        item
-                      );
-                    if (itemChanged) {
-                      merged[existingIndex] = mergedItem;
-                    }
-                  } else if (item.type === "chat") {
-                    const [mergedItem, itemChanged] =
-                      ReasoningCompletion.ChatCompletion.merged(
-                        merged[
-                          existingIndex
-                        ] as ReasoningCompletion.ChatCompletion,
-                        item
-                      );
-                    if (itemChanged) {
-                      merged[existingIndex] = mergedItem;
-                    }
-                  }
-                }
-              } else {
-                if (a.index === b.index && a.type === b.type) {
-                  if (b.type === "query") {
-                    const [mergedItem, itemChanged] =
-                      ReasoningCompletion.QueryCompletion.merged(
-                        a as ReasoningCompletion.QueryCompletion,
-                        b
-                      );
-                    if (itemChanged) {
-                      merged = mergedItem;
-                    }
-                  } else if (b.type === "chat") {
-                    const [mergedItem, itemChanged] =
-                      ReasoningCompletion.ChatCompletion.merged(
-                        a as ReasoningCompletion.ChatCompletion,
-                        b
-                      );
-                    if (itemChanged) {
-                      merged = mergedItem;
-                    }
-                  }
-                } else {
-                  merged = [a, b];
-                }
-              }
-            }
-            return merged ? [merged, true] : [a, false];
-          }
-        }
-
-        export type ReasoningCompletion =
-          | ReasoningCompletion.QueryCompletion
-          | ReasoningCompletion.ChatCompletion;
-
-        export namespace ReasoningCompletion {
-          export type QueryCompletion = {
-            index: number;
-            type: "query";
-            error?: ObjectiveAIError;
-          } & Query.Completions.Response.Streaming.ChatCompletionChunk;
-
-          export namespace QueryCompletion {
-            export function merged(
-              a: QueryCompletion,
-              b: QueryCompletion
-            ): [QueryCompletion, boolean] {
-              const [merged, changed] =
-                Query.Completions.Response.Streaming.ChatCompletionChunk.merged(
-                  a,
-                  b
-                );
-              return changed
-                ? [{ type: a.type, index: a.index, ...merged }, true]
-                : [a, false];
-            }
-          }
-
-          export type ChatCompletion = {
-            index: number;
-            type: "chat";
-            error?: ObjectiveAIError;
-          } & Chat.Completions.Response.Streaming.ChatCompletionChunk;
-
-          export namespace ChatCompletion {
-            export function merged(
-              a: ChatCompletion,
-              b: ChatCompletion
-            ): [ChatCompletion, boolean] {
-              const [merged, changed] =
-                Chat.Completions.Response.Streaming.ChatCompletionChunk.merged(
-                  a,
-                  b
-                );
-              return changed
-                ? [{ type: a.type, index: a.index, ...merged }, true]
-                : [a, false];
-            }
-          }
-        }
-      }
-
-      export namespace Unary {
-        export interface ChatCompletion {
-          id: string;
-          choices: Choice[];
-          created: number;
-          model: Model;
-          object: "chat.completion";
-          service_tier?: Chat.Completions.Response.ServiceTier;
-          system_fingerprint?: string;
-          usage?: Chat.Completions.Response.Usage;
-        }
-
-        export interface Choice {
-          message: Message;
-          finish_reason: Chat.Completions.Response.FinishReason;
-          index: number;
-          logprobs: Chat.Completions.Response.Logprobs | null;
-        }
-
-        export interface Message {
-          content: string | null;
-          refusal: string | null;
-          role: Chat.Completions.Response.Role;
-          annotations?: Chat.Completions.Response.Unary.Annotation[];
-          audio?: Chat.Completions.Response.Unary.Audio;
-          tool_calls?: Chat.Completions.Response.Unary.ToolCall[];
-          reasoning?: Reasoning;
-        }
-
-        export type Reasoning = ReasoningCompletion | ReasoningCompletion[];
-
-        export type ReasoningCompletion =
-          | ReasoningCompletion.QueryCompletion
-          | ReasoningCompletion.ChatCompletion;
-
-        export namespace ReasoningCompletion {
-          export type QueryCompletion = {
-            index: number;
-            type: "query";
-            error?: ObjectiveAIError;
-          } & Query.Completions.Response.Unary.ChatCompletion;
-
-          export type ChatCompletion = {
-            index: number;
-            type: "chat";
-            error?: ObjectiveAIError;
-          } & Chat.Completions.Response.Unary.ChatCompletion;
-        }
-      }
-
-      export type Model =
-        | "simple_query"
-        | "number_query"
-        | "multiple_choice_query"
-        | "multiple_choice_options_query"
-        | "weighted_average_choice_query";
-    }
-
-    export async function list(
-      openai: OpenAI,
-      listOptions?: Chat.Completions.ListOptions,
-      options?: OpenAI.RequestOptions
-    ): Promise<{ data: Chat.Completions.ListItem[] }> {
-      const response = await openai.get("/query_tool/completions", {
-        query: listOptions,
-        ...options,
-      });
-      return response as { data: Chat.Completions.ListItem[] };
-    }
-
-    export async function publish(
-      openai: OpenAI,
-      id: string,
-      options?: OpenAI.RequestOptions
-    ): Promise<void> {
-      await openai.post(`/query_tool/completions/${id}/publish`, options);
-    }
-
-    export async function retrieve(
-      openai: OpenAI,
-      id: string,
-      options?: OpenAI.RequestOptions
-    ): Promise<{
-      request: Request.ChatCompletionCreateParams;
-      response: Response.Unary.ChatCompletion;
-    }> {
-      const response = await openai.get(
-        `/query_tool/completions/${id}`,
-        options
-      );
-      return response as {
-        request: Request.ChatCompletionCreateParams;
-        response: Response.Unary.ChatCompletion;
-      };
-    }
-
-    export async function create(
-      openai: OpenAI,
-      body: Request.ChatCompletionCreateParamsStreaming,
-      options?: OpenAI.RequestOptions
-    ): Promise<
-      Stream<Response.Streaming.ChatCompletionChunk | ObjectiveAIError>
-    >;
-    export async function create(
-      openai: OpenAI,
-      body: Request.ChatCompletionCreateParamsNonStreaming,
-      options?: OpenAI.RequestOptions
-    ): Promise<Response.Unary.ChatCompletion>;
-    export async function create(
-      openai: OpenAI,
-      body: Request.ChatCompletionCreateParams,
-      options?: OpenAI.RequestOptions
-    ): Promise<
-      | Stream<Response.Streaming.ChatCompletionChunk | ObjectiveAIError>
-      | Response.Unary.ChatCompletion
-    > {
-      const response = await openai.post("/query_tool/completions", {
-        body,
-        stream: body.stream ?? false,
-        ...options,
-      });
-      return response as unknown as
-        | Stream<Response.Streaming.ChatCompletionChunk | ObjectiveAIError>
-        | Response.Unary.ChatCompletion;
-    }
-  }
-}
-
-export namespace QueryChat {
-  export namespace Completions {
-    export namespace Request {
-      export interface ChatCompletionCreateParamsBase {
-        messages: Chat.Completions.Request.Message[];
-        model: string;
-        frequency_penalty?: number | null;
-        logit_bias?: Record<string, number> | null;
-        logprobs?: boolean | null;
-        max_completion_tokens?: number | null;
-        modalities?: string[] | null;
-        parallel_tool_calls?: boolean | null;
-        prediction?: Chat.Completions.Request.Prediction | null;
-        presence_penalty?: number | null;
-        reasoning_effort?: Chat.Completions.Request.ReasoningEffort | null;
-        response_format?: Chat.Completions.Request.ResponseFormat | null;
-        seed?: number | null;
-        service_tier?: Chat.Completions.Request.ServiceTier | null;
-        stop?: Chat.Completions.Request.Stop | null;
-        stream_options?: Chat.Completions.Request.StreamOptions | null;
-        temperature?: number | null;
-        top_logprobs?: number | null;
-        top_p?: number | null;
-        max_tokens?: number | null;
-        min_p?: number | null;
-        provider?: Chat.Completions.Request.ProviderPreferences | null;
-        reasoning?: Chat.Completions.Request.Reasoning | null;
-        repetition_penalty?: number | null;
-        top_a?: number | null;
-        top_k?: number | null;
-        usage?: Chat.Completions.Request.Usage | null;
-        verbosity?: Chat.Completions.Request.Verbosity | null;
-        models?: string[] | null;
-        training_table_name?: string | null;
-        simple_query: QueryToolParams;
-        multiple_choice_query: QueryToolParams;
-        multiple_choice_options_query: QueryToolParams;
-      }
-
-      export interface ChatCompletionCreateParamsStreaming
-        extends ChatCompletionCreateParamsBase {
-        stream: true;
-      }
-
-      export interface ChatCompletionCreateParamsNonStreaming
-        extends ChatCompletionCreateParamsBase {
-        stream?: false | null;
-      }
-
-      export type ChatCompletionCreateParams =
-        | ChatCompletionCreateParamsStreaming
-        | ChatCompletionCreateParamsNonStreaming;
-
-      export interface QueryToolParams {
-        model: Query.Completions.Request.Model;
-        logprobs?: boolean | null;
-        n?: number | null;
-        prediction?: Chat.Completions.Request.Prediction | null;
-        seed?: number | null;
-        service_tier?: Chat.Completions.Request.ServiceTier | null;
-        tools?: Chat.Completions.Request.Tool[] | null;
-        top_logprobs?: number | null;
-        embeddings?: string | null;
-      }
-    }
-
-    export namespace Response {
-      export namespace Streaming {
-        export interface ChatCompletionChunk {
-          id: string;
-          choices: Choice[];
-          created: number;
-          model: string;
-          object: "chat.completion.chunk";
-          service_tier?: Chat.Completions.Response.ServiceTier;
-          system_fingerprint?: string;
-          usage?: Chat.Completions.Response.Usage;
-        }
-
-        export namespace ChatCompletionChunk {
-          export function merged(
-            a: ChatCompletionChunk,
-            b: ChatCompletionChunk
-          ): [ChatCompletionChunk, boolean] {
-            const id = a.id;
-            const [choices, choicesChanged] = Choice.mergedList(
-              a.choices,
-              b.choices
-            );
-            const created = a.created;
-            const model = a.model;
-            const object = a.object;
-            const [service_tier, service_tierChanged] = merge(
-              a.service_tier,
-              b.service_tier
-            );
-            const [system_fingerprint, system_fingerprintChanged] = merge(
-              a.system_fingerprint,
-              b.system_fingerprint
-            );
-            const [usage, usageChanged] = merge(
-              a.usage,
-              b.usage,
-              Chat.Completions.Response.Usage.merged
-            );
-            if (
-              choicesChanged ||
-              service_tierChanged ||
-              system_fingerprintChanged ||
-              usageChanged
-            ) {
-              return [
-                {
-                  id,
-                  choices,
-                  created,
-                  model,
-                  object,
-                  ...(service_tier !== undefined ? { service_tier } : {}),
-                  ...(system_fingerprint !== undefined
-                    ? { system_fingerprint }
-                    : {}),
-                  ...(usage !== undefined ? { usage } : {}),
-                },
-                true,
-              ];
-            } else {
-              return [a, false];
-            }
-          }
-        }
-
-        export interface Choice {
-          delta: Delta;
-          finish_reason: Chat.Completions.Response.FinishReason | null;
-          index: number;
-          logprobs?: Chat.Completions.Response.Logprobs;
-        }
-
-        export namespace Choice {
-          export function merged(a: Choice, b: Choice): [Choice, boolean] {
-            const [delta, deltaChanged] = merge(a.delta, b.delta, Delta.merged);
-            const [finish_reason, finish_reasonChanged] = merge(
-              a.finish_reason,
-              b.finish_reason
-            );
-            const index = a.index;
-            const [logprobs, logprobsChanged] = merge(
-              a.logprobs,
-              b.logprobs,
-              Chat.Completions.Response.Logprobs.merged
-            );
-            if (deltaChanged || finish_reasonChanged || logprobsChanged) {
-              return [
-                {
-                  delta,
-                  finish_reason,
-                  index,
-                  ...(logprobs !== undefined ? { logprobs } : {}),
-                },
-                true,
-              ];
-            } else {
-              return [a, false];
-            }
-          }
-          export function mergedList(
-            a: Choice[],
-            b: Choice[]
-          ): [Choice[], boolean] {
-            let merged: Choice[] | undefined = undefined;
-            for (const choice of b) {
-              const existingIndex = a.findIndex(
-                ({ index }) => index === choice.index
-              );
-              if (existingIndex === -1) {
-                if (merged === undefined) {
-                  merged = [...a, choice];
-                } else {
-                  merged.push(choice);
-                }
-              } else {
-                const [mergedChoice, choiceChanged] = Choice.merged(
-                  a[existingIndex],
-                  choice
-                );
-                if (choiceChanged) {
-                  if (merged === undefined) {
-                    merged = [...a];
-                  }
-                  merged[existingIndex] = mergedChoice;
-                }
-              }
-            }
-            return merged ? [merged, true] : [a, false];
-          }
-        }
-        export interface Delta {
-          content?: string;
-          refusal?: string;
-          role?: Chat.Completions.Response.Role;
-          tool_calls?: Chat.Completions.Response.Streaming.ToolCall[];
-          images?: Chat.Completions.Response.Image[];
-          reasoning?: Reasoning;
-        }
-
-        export namespace Delta {
-          export function merged(a: Delta, b: Delta): [Delta, boolean] {
-            const [content, contentChanged] = merge(
-              a.content,
-              b.content,
-              mergedString
-            );
-            const [refusal, refusalChanged] = merge(
-              a.refusal,
-              b.refusal,
-              mergedString
-            );
-            const [role, roleChanged] = merge(a.role, b.role);
-            const [tool_calls, tool_callsChanged] = merge(
-              a.tool_calls,
-              b.tool_calls,
-              Chat.Completions.Response.Streaming.ToolCall.mergedList
-            );
-            const [images, imagesChanged] = merge(
-              a.images,
-              b.images,
-              Chat.Completions.Response.Image.mergedList
-            );
-            const [reasoning, reasoningChanged] = merge(
-              a.reasoning,
-              b.reasoning,
-              Reasoning.merged
-            );
-            if (
-              contentChanged ||
-              reasoningChanged ||
-              refusalChanged ||
-              roleChanged ||
-              tool_callsChanged
-            ) {
-              return [
-                {
-                  ...(content !== undefined ? { content } : {}),
-                  ...(refusal !== undefined ? { refusal } : {}),
-                  ...(role !== undefined ? { role } : {}),
-                  ...(tool_calls !== undefined ? { tool_calls } : {}),
-                  ...(images !== undefined ? { images } : {}),
-                  ...(reasoning !== undefined ? { reasoning } : {}),
-                },
-                true,
-              ];
-            } else {
-              return [a, false];
-            }
-          }
-        }
-
-        export type Reasoning = ReasoningCompletion | ReasoningCompletion[];
-
-        export namespace Reasoning {
-          export function merged(
-            a: Reasoning,
-            b: Reasoning
-          ): [Reasoning, boolean] {
-            let merged: Reasoning | undefined = undefined;
-            if (Array.isArray(a)) {
-              if (Array.isArray(b)) {
-                for (const item of b) {
-                  if (merged === undefined) {
-                    const existingIndex = a.findIndex(
-                      ({ index, type }) =>
-                        index === item.index && type === item.type
-                    );
-                    if (existingIndex === -1) {
-                      merged = [...a, item];
-                    } else if (item.type === "query_tool") {
-                      const [mergedItem, itemChanged] =
-                        ReasoningCompletion.QueryToolCompletion.merged(
-                          a[
-                            existingIndex
-                          ] as ReasoningCompletion.QueryToolCompletion,
-                          item
-                        );
-                      if (itemChanged) {
-                        merged = [...a];
-                        merged[existingIndex] = mergedItem;
-                      }
-                    } else if (item.type === "chat") {
-                      const [mergedItem, itemChanged] =
-                        ReasoningCompletion.ChatCompletion.merged(
-                          a[
-                            existingIndex
-                          ] as ReasoningCompletion.ChatCompletion,
-                          item
-                        );
-                      if (itemChanged) {
-                        merged = [...a];
-                        merged[existingIndex] = mergedItem;
-                      }
-                    }
-                  } else if (Array.isArray(merged) /* always true */) {
-                    const existingIndex = merged.findIndex(
-                      ({ index, type }) =>
-                        index === item.index && type === item.type
-                    );
-                    if (existingIndex === -1) {
-                      merged.push(item);
-                    } else if (item.type === "query_tool") {
-                      const [mergedItem, itemChanged] =
-                        ReasoningCompletion.QueryToolCompletion.merged(
-                          merged[
-                            existingIndex
-                          ] as ReasoningCompletion.QueryToolCompletion,
-                          item
-                        );
-                      if (itemChanged) {
-                        merged[existingIndex] = mergedItem;
-                      }
-                    } else if (item.type === "chat") {
-                      const [mergedItem, itemChanged] =
-                        ReasoningCompletion.ChatCompletion.merged(
-                          merged[
-                            existingIndex
-                          ] as ReasoningCompletion.ChatCompletion,
-                          item
-                        );
-                      if (itemChanged) {
-                        merged[existingIndex] = mergedItem;
-                      }
-                    }
-                  }
-                }
-              } else {
-                const existingIndex = a.findIndex(
-                  ({ index, type }) => index === b.index && type === b.type
-                );
-                if (existingIndex === -1) {
-                  merged = [...a, b];
-                } else if (b.type === "query_tool") {
-                  const [mergedItem, itemChanged] =
-                    ReasoningCompletion.QueryToolCompletion.merged(
-                      a[
-                        existingIndex
-                      ] as ReasoningCompletion.QueryToolCompletion,
-                      b
-                    );
-                  if (itemChanged) {
-                    merged = [...a];
-                    merged[existingIndex] = mergedItem;
-                  }
-                } else if (b.type === "chat") {
-                  const [mergedItem, itemChanged] =
-                    ReasoningCompletion.ChatCompletion.merged(
-                      a[existingIndex] as ReasoningCompletion.ChatCompletion,
-                      b
-                    );
-                  if (itemChanged) {
-                    merged = [...a];
-                    merged[existingIndex] = mergedItem;
-                  }
-                }
-              }
-            } else {
-              if (Array.isArray(b)) {
-                merged = [a];
-                for (const item of b) {
-                  const existingIndex = merged.findIndex(
-                    ({ index, type }) =>
-                      index === item.index && type === item.type
-                  );
-                  if (existingIndex === -1) {
-                    merged.push(item);
-                  } else if (item.type === "query_tool") {
-                    const [mergedItem, itemChanged] =
-                      ReasoningCompletion.QueryToolCompletion.merged(
-                        merged[
-                          existingIndex
-                        ] as ReasoningCompletion.QueryToolCompletion,
-                        item
-                      );
-                    if (itemChanged) {
-                      merged[existingIndex] = mergedItem;
-                    }
-                  } else if (item.type === "chat") {
-                    const [mergedItem, itemChanged] =
-                      ReasoningCompletion.ChatCompletion.merged(
-                        merged[
-                          existingIndex
-                        ] as ReasoningCompletion.ChatCompletion,
-                        item
-                      );
-                    if (itemChanged) {
-                      merged[existingIndex] = mergedItem;
-                    }
-                  }
-                }
-              } else {
-                if (a.index === b.index && a.type === b.type) {
-                  if (b.type === "query_tool") {
-                    const [mergedItem, itemChanged] =
-                      ReasoningCompletion.QueryToolCompletion.merged(
-                        a as ReasoningCompletion.QueryToolCompletion,
-                        b
-                      );
-                    if (itemChanged) {
-                      merged = mergedItem;
-                    }
-                  } else if (b.type === "chat") {
-                    const [mergedItem, itemChanged] =
-                      ReasoningCompletion.ChatCompletion.merged(
-                        a as ReasoningCompletion.ChatCompletion,
-                        b
-                      );
-                    if (itemChanged) {
-                      merged = mergedItem;
-                    }
-                  }
-                } else {
-                  merged = [a, b];
-                }
-              }
-            }
-            return merged ? [merged, true] : [a, false];
-          }
-        }
-
-        export type ReasoningCompletion =
-          | ReasoningCompletion.QueryToolCompletion
-          | ReasoningCompletion.ChatCompletion;
-
-        export namespace ReasoningCompletion {
-          export type QueryToolCompletion = {
-            index: number;
-            type: "query_tool";
-            tool_call_id: string;
-            error?: ObjectiveAIError;
-          } & QueryTool.Completions.Response.Streaming.ChatCompletionChunk;
-
-          export namespace QueryToolCompletion {
-            export function merged(
-              a: QueryToolCompletion,
-              b: QueryToolCompletion
-            ): [QueryToolCompletion, boolean] {
-              const [merged, changed] =
-                QueryTool.Completions.Response.Streaming.ChatCompletionChunk.merged(
-                  a,
-                  b
-                );
-              const [error, errorChanged] = merge(a.error, b.error);
-              return changed || errorChanged
-                ? [
-                    {
-                      index: a.index,
-                      type: a.type,
-                      tool_call_id: a.tool_call_id,
-                      ...merged,
-                      error,
-                    },
-                    true,
-                  ]
-                : [a, false];
-            }
-          }
-
-          export type ChatCompletion = {
-            index: number;
-            type: "chat";
-            error?: ObjectiveAIError;
-          } & Chat.Completions.Response.Streaming.ChatCompletionChunk;
-
-          export namespace ChatCompletion {
-            export function merged(
-              a: ChatCompletion,
-              b: ChatCompletion
-            ): [ChatCompletion, boolean] {
-              const [merged, changed] =
-                Chat.Completions.Response.Streaming.ChatCompletionChunk.merged(
-                  a,
-                  b
-                );
-              const [error, errorChanged] = merge(a.error, b.error);
-              return changed || errorChanged
-                ? [{ index: a.index, type: a.type, ...merged, error }, true]
-                : [a, false];
-            }
-          }
-        }
-      }
-
-      export namespace Unary {
-        export interface ChatCompletion {
-          id: string;
-          choices: Choice[];
-          created: number;
-          model: string;
-          object: "chat.completion";
-          service_tier?: Chat.Completions.Response.ServiceTier;
-          system_fingerprint?: string;
-          usage?: Chat.Completions.Response.Usage;
-        }
-
-        export interface Choice {
-          message: Message;
-          finish_reason: Chat.Completions.Response.FinishReason;
-          index: number;
-          logprobs: Chat.Completions.Response.Logprobs | null;
-        }
-
-        export interface Message {
-          content: string | null;
-          refusal: string | null;
-          role: Chat.Completions.Response.Role;
-          annotations?: Chat.Completions.Response.Unary.Annotation[];
-          audio?: Chat.Completions.Response.Unary.Audio;
-          tool_calls?: Chat.Completions.Response.Unary.ToolCall[];
-          images?: Chat.Completions.Response.Image[];
-          reasoning?: Reasoning;
-        }
-
-        export type Reasoning = ReasoningCompletion | ReasoningCompletion[];
-
-        export type ReasoningCompletion =
-          | ReasoningCompletion.QueryToolCompletion
-          | ReasoningCompletion.ChatCompletion;
-
-        export namespace ReasoningCompletion {
-          export type QueryToolCompletion = {
-            index: number;
-            type: "query_tool";
-            tool_call_id: string;
-            error?: ObjectiveAIError;
-          } & QueryTool.Completions.Response.Unary.ChatCompletion;
-
-          export type ChatCompletion = {
-            index: number;
-            type: "chat";
-            error?: ObjectiveAIError;
-          } & Chat.Completions.Response.Unary.ChatCompletion;
-        }
-      }
-    }
-
-    export async function list(
-      openai: OpenAI,
-      listOptions?: Chat.Completions.ListOptions,
-      options?: OpenAI.RequestOptions
-    ): Promise<{ data: Chat.Completions.ListItem[] }> {
-      const response = await openai.get("/query_chat/completions", {
-        query: listOptions,
-        ...options,
-      });
-      return response as { data: Chat.Completions.ListItem[] };
-    }
-
-    export async function publish(
-      openai: OpenAI,
-      id: string,
-      options?: OpenAI.RequestOptions
-    ): Promise<void> {
-      await openai.post(`/query_chat/completions/${id}/publish`, options);
-    }
-
-    export async function retrieve(
-      openai: OpenAI,
-      id: string,
-      options?: OpenAI.RequestOptions
-    ): Promise<{
-      request: Request.ChatCompletionCreateParams;
-      response: Response.Unary.ChatCompletion;
-    }> {
-      const response = await openai.get(
-        `/query_chat/completions/${id}`,
-        options
-      );
-      return response as {
-        request: Request.ChatCompletionCreateParams;
-        response: Response.Unary.ChatCompletion;
-      };
-    }
-
-    export async function create(
-      openai: OpenAI,
-      body: Request.ChatCompletionCreateParamsStreaming,
-      options?: OpenAI.RequestOptions
-    ): Promise<
-      Stream<Response.Streaming.ChatCompletionChunk | ObjectiveAIError>
-    >;
-    export async function create(
-      openai: OpenAI,
-      body: Request.ChatCompletionCreateParamsNonStreaming,
-      options?: OpenAI.RequestOptions
-    ): Promise<Response.Unary.ChatCompletion>;
-    export async function create(
-      openai: OpenAI,
-      body: Request.ChatCompletionCreateParams,
-      options?: OpenAI.RequestOptions
-    ): Promise<
-      | Stream<Response.Streaming.ChatCompletionChunk | ObjectiveAIError>
-      | Response.Unary.ChatCompletion
-    > {
-      const response = await openai.post("/query_chat/completions", {
+      const response = await openai.post("/score/completions", {
         body,
         stream: body.stream ?? false,
         ...options,
@@ -3020,17 +1811,14 @@ export namespace Auth {
 }
 
 export interface Metadata {
-  query_requests: number;
-  query_completion_tokens: number;
-  query_prompt_tokens: number;
-  query_cost: number;
+  score_requests: number;
+  score_completion_tokens: number;
+  score_prompt_tokens: number;
+  score_total_cost: number;
   chat_requests: number;
   chat_completion_tokens: number;
   chat_prompt_tokens: number;
-  chat_cost: number;
-  embedding_completion_tokens: number;
-  embedding_prompt_tokens: number;
-  embedding_cost: number;
+  chat_total_cost: number;
 }
 
 export namespace Metadata {
@@ -3043,32 +1831,167 @@ export namespace Metadata {
   }
 }
 
-export interface QueryModelBase {
-  models: QueryModel.QueryLlmBase[];
-  weight: QueryModel.Weight;
-  select_generated_reasoning?: boolean | null;
+export interface ScoreLlmBase {
+  model: string;
+  weight: ScoreLlm.Weight;
+  output_mode: ScoreLlm.OutputMode;
+  synthetic_reasoning?: boolean | null;
+  top_logprobs?: number | null;
+  prefix_messages?: Chat.Completions.Request.Message[] | null;
+  suffix_messages?: Chat.Completions.Request.Message[] | null;
+  frequency_penalty?: number | null;
+  logit_bias?: Record<string, number> | null;
+  max_completion_tokens?: number | null;
+  presence_penalty?: number | null;
+  stop?: Chat.Completions.Request.Stop | null;
+  temperature?: number | null;
+  top_p?: number | null;
+  max_tokens?: number | null;
+  min_p?: number | null;
+  provider?: Chat.Completions.Request.ProviderPreferences | null;
+  reasoning?: Chat.Completions.Request.Reasoning | null;
+  repetition_penalty?: number | null;
+  top_a?: number | null;
+  top_k?: number | null;
+  verbosity?: Chat.Completions.Request.Verbosity | null;
+  models?: string[] | null;
 }
 
-export interface QueryModel {
-  name: string;
-  training_table_name?: string;
-  models: QueryModel.QueryLlm[];
-  weight: QueryModel.Weight;
+export interface ScoreLlmWithoutIndices extends ScoreLlmBase {
+  id: string;
+  training_table_id?: string;
 }
 
-export interface QueryModelWithMetadata extends QueryModel {
-  user_id: string;
+export interface ScoreLlmWithoutIndicesWithMetadata
+  extends ScoreLlmWithoutIndices {
   created: string; // RFC 3339 timestamp
   requests: number;
-  chat_completion_tokens: number;
-  chat_prompt_tokens: number;
-  chat_cost: number;
-  embedding_completion_tokens: number;
-  embedding_prompt_tokens: number;
-  embedding_cost: number;
+  completion_tokens: number;
+  prompt_tokens: number;
+  total_cost: number;
 }
 
-export namespace QueryModel {
+export interface ScoreLlm extends ScoreLlmWithoutIndices {
+  index: number;
+  training_table_index?: number;
+}
+
+export namespace ScoreLlm {
+  export type Weight = Weight.Static | Weight.TrainingTable;
+
+  export namespace Weight {
+    export interface Static {
+      type: "static";
+      weight: number;
+    }
+
+    export interface TrainingTable {
+      type: "training_table";
+      base_weight: number;
+      min_weight: number;
+      max_weight: number;
+    }
+  }
+
+  export type OutputMode = "instruction" | "json_schema" | "tool_call";
+
+  export async function list(
+    openai: OpenAI,
+    listOptions?: Models.ListOptions,
+    options?: OpenAI.RequestOptions
+  ): Promise<{ data: string[] }> {
+    const response = await openai.get("/score/llms", {
+      query: listOptions,
+      ...options,
+    });
+    return response as { data: string[] };
+  }
+
+  export async function count(
+    openai: OpenAI,
+    options?: OpenAI.RequestOptions
+  ): Promise<{ data: number }> {
+    const response = await openai.get("/score/llms/count", options);
+    return response as { data: number };
+  }
+
+  export async function retrieve(
+    openai: OpenAI,
+    model: string,
+    retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
+    options?: OpenAI.RequestOptions
+  ): Promise<ScoreLlmWithoutIndices>;
+  export async function retrieve(
+    openai: OpenAI,
+    model: string,
+    retrieveOptions: Models.RetrieveOptionsWithMetadata,
+    options?: OpenAI.RequestOptions
+  ): Promise<ScoreLlmWithoutIndicesWithMetadata>;
+  export async function retrieve(
+    openai: OpenAI,
+    model: string,
+    retrieveOptions?: Models.RetrieveOptions,
+    options?: OpenAI.RequestOptions
+  ): Promise<ScoreLlmWithoutIndices | ScoreLlmWithoutIndicesWithMetadata> {
+    const response = await openai.get(`/score/llms/${model}`, {
+      query: retrieveOptions,
+      ...options,
+    });
+    return response as
+      | ScoreLlmWithoutIndices
+      | ScoreLlmWithoutIndicesWithMetadata;
+  }
+
+  export async function retrieveValidate(
+    openai: OpenAI,
+    model: ScoreLlmBase,
+    retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
+    options?: OpenAI.RequestOptions
+  ): Promise<ScoreLlmWithoutIndices>;
+  export async function retrieveValidate(
+    openai: OpenAI,
+    model: ScoreLlmBase,
+    retrieveOptions: Models.RetrieveOptionsWithMetadata,
+    options?: OpenAI.RequestOptions
+  ): Promise<ScoreLlmWithoutIndicesWithMetadata>;
+  export async function retrieveValidate(
+    openai: OpenAI,
+    model: ScoreLlmBase,
+    retrieveOptions?: Models.RetrieveOptions,
+    options?: OpenAI.RequestOptions
+  ): Promise<ScoreLlmWithoutIndices | ScoreLlmWithoutIndicesWithMetadata> {
+    const response = await openai.post("/score/llms", {
+      query: retrieveOptions,
+      body: model,
+      ...options,
+    });
+    return response as
+      | ScoreLlmWithoutIndices
+      | ScoreLlmWithoutIndicesWithMetadata;
+  }
+}
+
+export interface ScoreModelBase {
+  llms: ScoreLlmBase[];
+  weight: ScoreModel.Weight;
+}
+
+export interface ScoreModel {
+  id: string;
+  training_table_id?: string;
+  llms: ScoreLlm[];
+  weight: ScoreModel.Weight;
+}
+
+export interface ScoreModelWithMetadata extends ScoreModel {
+  created: string; // RFC 3339 timestamp
+  requests: number;
+  completion_tokens: number;
+  prompt_tokens: number;
+  total_cost: number;
+}
+
+export namespace ScoreModel {
   export type Weight = Weight.Static | Weight.TrainingTable;
 
   export namespace Weight {
@@ -3078,136 +2001,12 @@ export namespace QueryModel {
 
     export interface TrainingTable {
       type: "training_table";
-      embeddings_model: string;
+      embeddings: {
+        model: string;
+        max_tokens: number;
+        provider?: Chat.Completions.Request.ProviderPreferences | null;
+      };
       top: number;
-    }
-  }
-
-  export interface QueryLlmBase {
-    id: string;
-    mode: QueryLlm.Mode;
-    select_top_logprobs?: number | null;
-    tool_response_format?: boolean | null;
-    frequency_penalty?: number | null;
-    logit_bias?: Record<string, number> | null;
-    max_completion_tokens?: number | null;
-    presence_penalty?: number | null;
-    reasoning_effort?: Chat.Completions.Request.ReasoningEffort | null;
-    stop?: Chat.Completions.Request.Stop | null;
-    temperature?: number | null;
-    top_p?: number | null;
-    max_tokens?: number | null;
-    min_p?: number | null;
-    provider?: Chat.Completions.Request.ProviderPreferences | null;
-    reasoning?: Chat.Completions.Request.Reasoning | null;
-    repetition_penalty?: number | null;
-    top_a?: number | null;
-    top_k?: number | null;
-    verbosity?: Chat.Completions.Request.Verbosity | null;
-    models?: string[] | null;
-    weight: QueryLlm.Weight;
-  }
-
-  export interface QueryLlmWithoutIndices extends QueryLlmBase {
-    name: string;
-    training_table_name?: string;
-  }
-
-  export interface QueryLlm extends QueryLlmWithoutIndices {
-    index: number;
-    training_table_index?: number;
-  }
-
-  export interface QueryLlmWithoutIndicesWithMetadata
-    extends QueryLlmWithoutIndices {
-    user_id: string;
-    created: string; // RFC 3339 timestamp
-    requests: number;
-    chat_completion_tokens: number;
-    chat_prompt_tokens: number;
-    chat_cost: number;
-    embedding_completion_tokens: number;
-    embedding_prompt_tokens: number;
-    embedding_cost: number;
-  }
-
-  export namespace QueryLlm {
-    export type Mode =
-      | "generate"
-      | "select_thinking"
-      | "select_non_thinking"
-      | "select_thinking_logprobs"
-      | "select_non_thinking_logprobs";
-
-    export type Weight = Weight.Static | Weight.TrainingTable;
-
-    export namespace Weight {
-      export interface Static {
-        type: "static";
-        weight: number;
-      }
-
-      export interface TrainingTable {
-        type: "training_table";
-        base_weight: number;
-        min_weight: number;
-        max_weight: number;
-      }
-    }
-
-    export async function retrieve(
-      openai: OpenAI,
-      model: string,
-      retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
-      options?: OpenAI.RequestOptions
-    ): Promise<QueryLlmWithoutIndices>;
-    export async function retrieve(
-      openai: OpenAI,
-      model: string,
-      retrieveOptions: Models.RetrieveOptionsWithMetadata,
-      options?: OpenAI.RequestOptions
-    ): Promise<QueryLlmWithoutIndicesWithMetadata>;
-    export async function retrieve(
-      openai: OpenAI,
-      model: string,
-      retrieveOptions?: Models.RetrieveOptions,
-      options?: OpenAI.RequestOptions
-    ): Promise<QueryLlmWithoutIndices | QueryLlmWithoutIndicesWithMetadata> {
-      const response = await openai.get(`/query_llms/${model}`, {
-        query: retrieveOptions,
-        ...options,
-      });
-      return response as
-        | QueryLlmWithoutIndices
-        | QueryLlmWithoutIndicesWithMetadata;
-    }
-
-    export async function retrieveValidate(
-      openai: OpenAI,
-      model: QueryLlmBase,
-      retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
-      options?: OpenAI.RequestOptions
-    ): Promise<QueryLlmWithoutIndices>;
-    export async function retrieveValidate(
-      openai: OpenAI,
-      model: QueryLlmBase,
-      retrieveOptions: Models.RetrieveOptionsWithMetadata,
-      options?: OpenAI.RequestOptions
-    ): Promise<QueryLlmWithoutIndicesWithMetadata>;
-    export async function retrieveValidate(
-      openai: OpenAI,
-      model: QueryLlmBase,
-      retrieveOptions?: Models.RetrieveOptions,
-      options?: OpenAI.RequestOptions
-    ): Promise<QueryLlmWithoutIndices | QueryLlmWithoutIndicesWithMetadata> {
-      const response = await openai.post("/query_llms", {
-        query: retrieveOptions,
-        body: model,
-        ...options,
-      });
-      return response as
-        | QueryLlmWithoutIndices
-        | QueryLlmWithoutIndicesWithMetadata;
     }
   }
 
@@ -3216,7 +2015,7 @@ export namespace QueryModel {
     listOptions?: Models.ListOptions,
     options?: OpenAI.RequestOptions
   ): Promise<{ data: string[] }> {
-    const response = await openai.get("/query_models", {
+    const response = await openai.get("/score/models", {
       query: listOptions,
       ...options,
     });
@@ -3227,7 +2026,7 @@ export namespace QueryModel {
     openai: OpenAI,
     options?: OpenAI.RequestOptions
   ): Promise<{ count: number }> {
-    const response = await openai.get("/query_models/count", options);
+    const response = await openai.get("/score/models/count", options);
     return response as { count: number };
   }
 
@@ -3236,50 +2035,50 @@ export namespace QueryModel {
     model: string,
     retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
     options?: OpenAI.RequestOptions
-  ): Promise<QueryModel>;
+  ): Promise<ScoreModel>;
   export async function retrieve(
     openai: OpenAI,
     model: string,
     retrieveOptions: Models.RetrieveOptionsWithMetadata,
     options?: OpenAI.RequestOptions
-  ): Promise<QueryModelWithMetadata>;
+  ): Promise<ScoreModelWithMetadata>;
   export async function retrieve(
     openai: OpenAI,
     model: string,
     retrieveOptions?: Models.RetrieveOptions,
     options?: OpenAI.RequestOptions
-  ): Promise<QueryModel | QueryModelWithMetadata> {
-    const response = await openai.get(`/query_models/${model}`, {
+  ): Promise<ScoreModel | ScoreModelWithMetadata> {
+    const response = await openai.get(`/score/models/${model}`, {
       query: retrieveOptions,
       ...options,
     });
-    return response as QueryModel | QueryModelWithMetadata;
+    return response as ScoreModel | ScoreModelWithMetadata;
   }
 
   export async function retrieveValidate(
     openai: OpenAI,
-    model: QueryModelBase,
+    model: ScoreModelBase,
     retrieveOptions?: Models.RetrieveOptionsWithoutMetadata,
     options?: OpenAI.RequestOptions
-  ): Promise<QueryModel>;
+  ): Promise<ScoreModel>;
   export async function retrieveValidate(
     openai: OpenAI,
-    model: QueryModelBase,
+    model: ScoreModelBase,
     retrieveOptions: Models.RetrieveOptionsWithMetadata,
     options?: OpenAI.RequestOptions
-  ): Promise<QueryModelWithMetadata>;
+  ): Promise<ScoreModelWithMetadata>;
   export async function retrieveValidate(
     openai: OpenAI,
-    model: QueryModelBase,
+    model: ScoreModelBase,
     retrieveOptions?: Models.RetrieveOptions,
     options?: OpenAI.RequestOptions
-  ): Promise<QueryModel | QueryModelWithMetadata> {
-    const response = await openai.post("/query_models", {
+  ): Promise<ScoreModel | ScoreModelWithMetadata> {
+    const response = await openai.post("/score/models", {
       query: retrieveOptions,
       body: model,
       ...options,
     });
-    return response as QueryModel | QueryModelWithMetadata;
+    return response as ScoreModel | ScoreModelWithMetadata;
   }
 }
 
