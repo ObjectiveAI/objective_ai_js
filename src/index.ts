@@ -176,134 +176,111 @@ export namespace Chat {
         | Message.System
         | Message.User
         | Message.Assistant
-        | Message.Tool;
+        | Message.Tool
+        | Message.ChatCompletion
+        | Message.ScoreCompletion;
 
       export namespace Message {
-        export interface Developer {
-          role: "developer";
-          content: Developer.Content;
-          name?: string;
+        export type SimpleContent = string | SimpleContentPart[];
+
+        export interface SimpleContentPart {
+          text: string;
+          type: "text";
         }
 
-        export namespace Developer {
-          export type Content = string | Content.Part[];
+        export type RichContent = string | RichContentPart[];
 
-          export namespace Content {
-            export interface Part {
-              text: string;
-              type: "text";
+        export type RichContentPart =
+          | RichContentPart.Text
+          | RichContentPart.ImageUrl
+          | RichContentPart.InputAudio
+          | RichContentPart.InputVideo
+          | RichContentPart.File;
+
+        export namespace RichContentPart {
+          export interface Text {
+            text: string;
+            type: "text";
+          }
+
+          export interface ImageUrl {
+            image_url: ImageUrl.Definition;
+            type: "image_url";
+          }
+
+          export namespace ImageUrl {
+            export interface Definition {
+              url: string;
+              detail?: ImageUrl.Detail | null;
+            }
+
+            export type Detail = "auto" | "low" | "high";
+          }
+
+          export interface InputAudio {
+            input_audio: InputAudio.Definition;
+            type: "input_audio";
+          }
+
+          export namespace InputAudio {
+            export interface Definition {
+              data: string;
+              format: Format;
+            }
+            export type Format = "wav" | "mp3";
+          }
+
+          export interface InputVideo {
+            video_url: InputVideo.Definition;
+          }
+
+          export namespace InputVideo {
+            export interface Definition {
+              url: string;
             }
           }
+
+          export interface File {
+            file: File.Definition;
+            type: "file";
+          }
+
+          export namespace File {
+            export interface Definition {
+              file_data?: string | null;
+              file_id?: string | null;
+              filename?: string | null;
+            }
+          }
+        }
+
+        export interface Developer {
+          role: "developer";
+          content: SimpleContent;
+          name?: string;
         }
 
         export interface System {
           role: "system";
-          content: System.Content;
+          content: SimpleContent;
           name?: string;
-        }
-
-        export namespace System {
-          export type Content = string | Content.Part[];
-
-          export namespace Content {
-            export interface Part {
-              text: string;
-              type: "text";
-            }
-          }
         }
 
         export interface User {
           role: "user";
-          content: User.Content;
+          content: RichContent;
           name?: string;
-        }
-
-        export namespace User {
-          export type Content = string | Content.Part[];
-
-          export namespace Content {
-            export type Part =
-              | Part.Text
-              | Part.ImageUrl
-              | Part.InputAudio
-              | Part.File;
-
-            export namespace Part {
-              export interface Text {
-                text: string;
-                type: "text";
-              }
-
-              export interface ImageUrl {
-                image_url: ImageUrl.Definition;
-                type: "image_url";
-              }
-
-              export namespace ImageUrl {
-                export interface Definition {
-                  url: string;
-                  detail?: ImageUrl.Detail | null;
-                }
-
-                export type Detail = "auto" | "low" | "high";
-              }
-
-              export interface InputAudio {
-                input_audio: InputAudio.Definition;
-                type: "input_audio";
-              }
-
-              export namespace InputAudio {
-                export interface Definition {
-                  data: string;
-                  format: Format;
-                }
-                export type Format = "wav" | "mp3";
-              }
-
-              export interface File {
-                file: File.Definition;
-                type: "file";
-              }
-
-              export namespace File {
-                export interface Definition {
-                  file_data?: string | null;
-                  file_id?: string | null;
-                  filename?: string | null;
-                }
-              }
-            }
-          }
         }
 
         export interface Assistant {
           role: "assistant";
-          content?: Assistant.Content | null;
+          content?: RichContent | null;
           name?: string | null;
           refusal?: string | null;
           tool_calls?: Assistant.ToolCall[] | null;
         }
 
         export namespace Assistant {
-          export type Content = string | Content.Part[];
-
-          export namespace Content {
-            export type Part = Part.Text | Part.Refusal;
-
-            export namespace Part {
-              export interface Text {
-                text: string;
-                type: "text";
-              }
-              export interface Refusal {
-                refusal: string;
-                type: "refusal";
-              }
-            }
-          }
-
           export type ToolCall = ToolCall.Function;
 
           export namespace ToolCall {
@@ -324,19 +301,22 @@ export namespace Chat {
 
         export interface Tool {
           role: "tool";
-          content?: Tool.Content | null;
+          content?: RichContent | null;
           tool_call_id: string;
         }
 
-        export namespace Tool {
-          export type Content = string | Content.Part[];
+        export interface ChatCompletion {
+          role: "chat_completion";
+          id: string;
+          choice_index: number;
+          name?: string | null;
+        }
 
-          export namespace Content {
-            export interface Part {
-              text: string;
-              type: "text";
-            }
-          }
+        export interface ScoreCompletion {
+          role: "score_completion";
+          id: string;
+          choice_index: number;
+          name?: string | null;
         }
       }
 
@@ -1137,7 +1117,7 @@ export namespace Score {
         stream_options?: Chat.Completions.Request.StreamOptions | null;
         tools?: Chat.Completions.Request.Tool[] | null;
         usage?: Chat.Completions.Request.Usage | null;
-        choices: string[];
+        choices: Choice[];
       }
 
       export interface ChatCompletionCreateParamsStreaming
@@ -1155,6 +1135,25 @@ export namespace Score {
         | ChatCompletionCreateParamsNonStreaming;
 
       export type Model = string | ScoreModelBase;
+
+      export type Choice =
+        | string
+        | Choice.ChatCompletion
+        | Choice.ScoreCompletion;
+
+      export namespace Choice {
+        export interface ChatCompletion {
+          type: "chat_completion";
+          id: string;
+          choice_index: number;
+        }
+
+        export interface ScoreCompletion {
+          type: "score_completion";
+          id: string;
+          choice_index: number;
+        }
+      }
     }
 
     export namespace Response {
