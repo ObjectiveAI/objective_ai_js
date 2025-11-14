@@ -1036,6 +1036,7 @@ export namespace Chat {
 
     export interface ListItem {
       id: string;
+      preview: string | null;
       created: string; // RFC 3339 timestamp
     }
 
@@ -1491,9 +1492,15 @@ export namespace Score {
       }
     }
 
+    export interface ListOptions extends Chat.Completions.ListOptions {
+      count?: number | null;
+      offset?: number | null;
+      chat_filter?: boolean | null;
+    }
+
     export async function list(
       openai: OpenAI,
-      listOptions?: Chat.Completions.ListOptions,
+      listOptions?: ListOptions,
       options?: OpenAI.RequestOptions
     ): Promise<{ data: Chat.Completions.ListItem[] }> {
       const response = await openai.get("/score/completions", {
